@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval:routing": "tsx eval/eval-routing.ts",
+    "eval:calibration": "tsx eval/eval-calibration.ts",
     "cf:dev": "wrangler dev",
     "cf:deploy": "wrangler deploy"
   },

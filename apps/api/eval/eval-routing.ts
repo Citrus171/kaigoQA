@@ -53,6 +53,94 @@ function metrics(results: Result[]) {
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
+interface SweepPoint {
+  t: number;
+  tp: number;
+  fp: number;
+  fn: number;
+  tn: number;
+  recall: number;
+  precision: number;
+  f2: number;
+  cost: number;
+}
+
+/**
+ * gold 上で閾値 t を全域スイープし PR 曲線を返す（ADR0001 動作点再検討 Step1）。
+ * score>t を cloud と判定。コスト比sweepは t* sweep と等価なのでこれ1回で十分。
+ */
+function sweepThresholds(gold: GoldCase[], scores: number[]): SweepPoint[] {
+  const candidates = Array.from(
+    new Set([
+      -Infinity,
+      ...scores.map((s) => s - 1e-6),
+      ...scores.map((s) => s + 1e-6),
+    ]),
+  ).sort((a, b) => a - b);
+  return candidates.map((t) => {
+    const m = metrics(
+      toResults(
+        gold,
+        scores.map((s) => (s > t ? "cloud" : "edge")),
+      ),
+    );
+    return { t: Number.isFinite(t) ? t : -Infinity, ...m };
+  });
+}
+
+/** Pareto frontier（recall/precision どちらも他点に劣らない点）を抽出。 */
+function paretoFrontier(points: SweepPoint[]): SweepPoint[] {
+  return points.filter(
+    (p) =>
+      !points.some(
+        (q) =>
+          q !== p &&
+          q.recall >= p.recall &&
+          q.precision >= p.precision &&
+          (q.recall > p.recall || q.precision > p.precision),
+      ),
+  );
+}
+
+function reportSweep(name: string, gold: GoldCase[], scores: number[]) {
+  const points = sweepThresholds(gold, scores);
+  console.log(`### ${name}`);
+  // Recall 目標を満たす中で最大 Precision の点（= 達成可能な最良動作点）。
+  const feasible = points.filter((p) => p.recall >= RECALL_TARGET);
+  const bestAtTarget = feasible.reduce<SweepPoint | null>(
+    (best, p) => (best === null || p.precision > best.precision ? p : best),
+    null,
+  );
+  // 全域での最小加重コスト点。
+  const minCost = points.reduce((best, p) => (p.cost < best.cost ? p : best));
+  // Pareto frontier を recall 昇順で表示（曲線の形＝診断材料）。
+  const front = paretoFrontier(points).sort((a, b) => a.recall - b.recall);
+  console.log("  Pareto frontier (t / Recall / Precision / F2 / 加重コスト):");
+  for (const p of front) {
+    const mark = p === bestAtTarget ? " ◀ Recall目標下の最良" : p === minCost ? " ◀ 最小コスト" : "";
+    console.log(
+      `    t=${p.t.toFixed(3).padStart(7)}  R=${pct(p.recall).padStart(6)}  P=${pct(p.precision).padStart(6)}  F2=${p.f2.toFixed(3)}  cost=${String(p.cost).padStart(3)}${mark}`,
+    );
+  }
+  console.log("  --- 診断 ---");
+  if (bestAtTarget) {
+    console.log(
+      `  Recall≥${pct(RECALL_TARGET)} で達成可能な最大Precision = ${pct(bestAtTarget.precision)} (t=${bestAtTarget.t.toFixed(3)}, FP=${bestAtTarget.fp})`,
+    );
+    console.log(
+      bestAtTarget.precision < 0.7
+        ? "  → frontier 全域でも高Precision化できない＝埋め込み(分離力)問題の可能性大。プロトタイプ増強/bge移行を検討。"
+        : "  → 閾値選択で改善余地あり＝閾値問題。動作点をこの点へ寄せる。",
+    );
+  } else {
+    console.log(
+      `  Recall≥${pct(RECALL_TARGET)} を満たす閾値が存在しない＝埋め込み問題が濃厚。`,
+    );
+  }
+  console.log("");
+  return { bestAtTarget, minCost };
+}
+
 function report(name: string, results: Result[]) {
   const m = metrics(results);
   console.log(`### ${name}`);
@@ -131,6 +219,13 @@ async function main() {
         routingGold,
         goldScored.map((p) => (p.score > tStar ? "cloud" : "edge")),
       ),
+    );
+
+    // (D) 動作点再検討 Step1: gold 全域 PR sweep（閾値問題か埋め込み問題かを診断）。
+    reportSweep(
+      `(D) 閾値 全域sweep on gold [${embed.name}]`,
+      routingGold,
+      goldScored.map((p) => p.score),
     );
   } catch (e) {
     console.log("(B/C) スキップ: 埋め込み取得に失敗（Ollama起動を確認）");
