@@ -70,3 +70,34 @@ export async function buildCentroidClassifier(
     },
   };
 }
+
+/**
+ * score>t を cloud とする閾値 t を、加重コスト(FN×costFn + FP×costFp)最小で選ぶ。
+ * 同コストなら t を小さく（cloud寄り＝FN少）取り安全側へ倒す。
+ * ※ in-sample で選ぶと楽観的。本番は独立した検証split/ prod埋め込みで再選定すること。
+ */
+export function tuneThreshold(
+  scores: number[],
+  labels: Tier[],
+  costFn = 10,
+  costFp = 1,
+): number {
+  const candidates = [
+    -Infinity,
+    ...scores.map((s) => s - 1e-6),
+    ...scores.map((s) => s + 1e-6),
+  ].sort((a, b) => a - b);
+  let best = { t: 0, cost: Infinity };
+  for (const t of candidates) {
+    let fn = 0;
+    let fp = 0;
+    for (let i = 0; i < scores.length; i++) {
+      const pred: Tier = scores[i]! > t ? "cloud" : "edge";
+      if (labels[i] === "cloud" && pred === "edge") fn++;
+      if (labels[i] === "edge" && pred === "cloud") fp++;
+    }
+    const cost = fn * costFn + fp * costFp;
+    if (cost < best.cost) best = { t: Number.isFinite(t) ? t : -1, cost };
+  }
+  return best.t;
+}

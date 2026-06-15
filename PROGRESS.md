@@ -129,7 +129,12 @@ functest-hybrid/   (npm workspaces)
   - LR→**セントロイド・コサイン**へ逸脱（llama3.2:1bのみ＝2048次元×少数ラベルでLRは過学習）。`src/lib/embed.ts`(EmbedProvider二刀流), `src/lib/classify-embed.ts`(buildCentroidClassifier), `eval/routing-train.ts`(学習24件・リーク防止)。
   - 閾値 t* は train で加重コスト最小化(FN:FP=10:1)→held-out適用。**Recall 15%→40%→90%、FN 17→2、コスト 170→24**。既存Vitest10件・typecheck緑。
   - 残: FN2/Precision81.8%（llama3.2:1b埋め込み限界）。**ライブ`ai.ts`未wiring**（embed1回/起動時セントロイド構築のlatency判断＝Step2b）。
-- 次候補: (a) Step2b ライブ`ai.ts`へ分類器組込 / (b) goldラベルの実務者レビュー / (c) Step5 RAG・専用embed(bge)・モデル増強 / (d) WorkersAiEmbedProvider(prod)。
+- **Step2b 完了（ライブ`ai.ts`へwiring）**:
+  - `src/lib/routing-prototypes.ts`(プロトタイプをsrcへ移動=モデルの一部), `src/lib/routing.ts`(起動時セントロイド構築シングルトン+閾値チューニング), `classify-embed.ts`に`tuneThreshold`正準化（evalと共有）。
+  - `ai.ts`: 段1を`preRoute()`化。**フラグ`AI_ROUTER=classifier`で有効**（既定rule-base＝既存挙動/テスト/prod無影響）。埋め込み失敗時はrule-baseへグレースフルフォールバック。埋め込みprovider使い回し。
+  - liveスモーク(`AI_ROUTER=classifier`): 挨拶→cloud(FP) / 要介護2回数→cloud / 営業時間→edge / 加算算定→cloud。**evalと完全整合**（wiring忠実）。typecheck・既存Vitest10件緑。
+- **⚠️ 正直な発見（動作点の問題）**: t*=-0.134 の (C) は **Recall94.1%だがPrecision61.5%（FP=10/17）**。挨拶3件含むedgeの6割をcloudへ過剰escalation。「Recall94.1% ✅」はprecision崩壊を隠していた。原因=(1)llama3.2:1b埋め込みの分離力不足 +(2)コスト比10:1がrecall優先で閾値を下げすぎ。OpenCode Goは定額で金銭損なしだがUX不合理（[[opencode-go-flat-rate-cost]]）。
+- 次候補: (a) **コスト比/動作点の再検討**（10:1見直し or 第2防衛線=段2confidenceで救済）/ (b) Step4 Shadow Mode（この過剰escalationを本番前に観測）/ (c) prod埋め込み(bge)で分離力改善＋再チューニング(parity) / (d) goldラベルの実務者レビュー。
 
 ## 関連
 

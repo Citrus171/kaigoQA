@@ -1,18 +1,16 @@
-// セントロイド分類器の学習用プロトタイプ（ADR 0001 Step2）。
+// ルーティング分類器のプロトタイプ（=モデルの一部。prodにも出荷される）。
+// セントロイドの構築元。eval(held-out gold)とは別文言＝リーク防止。
 //
-// ⚠️ 評価リーク防止: routing-gold.ts(評価=held-out) とは別の文言にすること。
-// ⚠️ ラベルは暫定・要実務者レビュー。判定基準は routing-gold.ts のヘッダに準拠
+// ⚠️ ラベルは暫定・要実務者レビュー。判定基準は eval/routing-gold.ts のヘッダに準拠
 //    （中間: 事実列挙=edge / 適用・算定・解釈・個別相談・法令・税要件=cloud）。
 
-import type { Tier } from "./routing-gold";
+import type { LabeledExample, Tier } from "@/lib/classify-embed";
 
-export interface TrainCase {
-  query: string;
-  label: Tier;
+export interface Prototype extends LabeledExample {
   category: string;
 }
 
-export const routingTrain: TrainCase[] = [
+export const routingPrototypes: Prototype[] = [
   // --- edge: 挨拶 / 運営FAQ / 一般説明・制度の事実列挙 ---
   { query: "はじめまして、よろしくお願いします", label: "edge", category: "greeting" },
   { query: "こんばんは", label: "edge", category: "greeting" },
@@ -42,3 +40,5 @@ export const routingTrain: TrainCase[] = [
   { query: "生活援助の回数制限の取り扱いを判断してほしい", label: "cloud", category: "case-judgment" },
   { query: "夜間対応型訪問介護の利用要件を満たすか確認したい", label: "cloud", category: "case-judgment" },
 ];
+
+export type { Tier };

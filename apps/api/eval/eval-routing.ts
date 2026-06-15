@@ -12,9 +12,9 @@
 
 import { classifyComplexity } from "../src/lib/classify";
 import { OllamaEmbedProvider } from "../src/lib/embed";
-import { buildCentroidClassifier } from "../src/lib/classify-embed";
+import { buildCentroidClassifier, tuneThreshold } from "../src/lib/classify-embed";
+import { routingPrototypes as routingTrain } from "../src/lib/routing-prototypes";
 import { routingGold, type GoldCase, type Tier } from "./routing-gold";
-import { routingTrain } from "./routing-train";
 
 const COST_FN = 10;
 const COST_FP = 1;
@@ -119,9 +119,11 @@ async function main() {
     const trainScored = await classifier.classifyBatch(
       routingTrain.map((t) => t.query),
     );
-    const tStar = pickThreshold(
+    const tStar = tuneThreshold(
       trainScored.map((s) => s.score),
       routingTrain.map((t) => t.label),
+      COST_FN,
+      COST_FP,
     );
     tunedM = report(
       `(C) Step3: 閾値チューニング後 (t*=${tStar.toFixed(3)} on train)`,
@@ -156,29 +158,6 @@ async function main() {
     process.exit(pass ? 0 : 1);
   }
   process.exit(1);
-}
-
-// 加重コスト(FN×COST_FN + FP×COST_FP)を最小化する閾値を選ぶ。
-// 同コストなら t を小さく（cloud寄り＝FN少）取り、安全側に倒す。
-function pickThreshold(scores: number[], labels: Tier[]): number {
-  const candidates = [
-    -Infinity,
-    ...scores.map((s) => s - 1e-6),
-    ...scores.map((s) => s + 1e-6),
-  ].sort((a, b) => a - b);
-  let best = { t: 0, cost: Infinity };
-  for (const t of candidates) {
-    let fn = 0;
-    let fp = 0;
-    for (let i = 0; i < scores.length; i++) {
-      const pred: Tier = scores[i]! > t ? "cloud" : "edge";
-      if (labels[i] === "cloud" && pred === "edge") fn++;
-      if (labels[i] === "edge" && pred === "cloud") fp++;
-    }
-    const cost = fn * COST_FN + fp * COST_FP;
-    if (cost < best.cost) best = { t: Number.isFinite(t) ? t : -1, cost };
-  }
-  return best.t;
 }
 
 main();
