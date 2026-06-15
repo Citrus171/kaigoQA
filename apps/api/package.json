@@ -19,6 +19,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "eval:routing": "tsx eval/eval-routing.ts",
     "cf:dev": "wrangler dev",
     "cf:deploy": "wrangler deploy"
   },

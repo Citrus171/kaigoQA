@@ -7,6 +7,7 @@ import type { DB } from "@/db/schema";
 import { authRoutes } from "@/routes/auth";
 import { todoRoutes } from "@/routes/todos";
 import { adminRoutes } from "@/routes/admin";
+import { aiRoutes } from "@/routes/ai";
 
 /**
  * db と jwtSecret の解決方法を注入してアプリを組み立てる。
@@ -39,7 +40,8 @@ export function createApp(resolvers: Resolvers) {
     })
     .route("/auth", authRoutes)
     .route("/todos", todoRoutes)
-    .route("/admin", adminRoutes);
+    .route("/admin", adminRoutes)
+    .route("/ai", aiRoutes);
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) return err.getResponse();

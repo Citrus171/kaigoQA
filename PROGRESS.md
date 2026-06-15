@@ -99,6 +99,38 @@ functest-hybrid/   (npm workspaces)
 - web(Next dev): :3000（このマシンは 3000/3100 が別アプリ占有のことあり→必要なら PORT 変更）
 - cookie 名 `session`、httpOnly/SameSite=Lax/path=/、prod は secure
 
+## AIハイブリッドルーティング PoC（2026-06-16 実装・完了）
+
+> 設計: `docs/poc-ai-routing.md`。ブランチ `feat/ai-routing-poc-impl`。dev=ローカルOllama / escalation=OpenCode Go。
+
+- 追加物:
+  - `packages/shared/src/schemas.ts`: `aiAskSchema` / `aiAnswerSchema`（応答型 = 単一の真実）。
+  - `apps/api/src/lib/inference.ts`: `InferProvider` 抽象 + `OllamaProvider`(dev edge) + `OpenCodeProvider`(escalation, deepseek-v4-flash)。`InferenceError` で上流障害を区別。
+  - `apps/api/src/lib/classify.ts`: `classifyComplexity()`（段1ルール。長文>200字 or 法令/診断/計算等キーワードで即 cloud）。
+  - `apps/api/src/routes/ai.ts`: `POST /ai/ask`。JWT必須・チェーン化。段1→段2(SLM自信≥0.6で edge / 未満で cloud)。推論障害は 502。
+  - `apps/api/src/app.ts`: `.route("/ai", aiRoutes)` 追加。
+- 検証結果（全て緑）:
+  - 「こんにちは」→ `tier:edge`（Ollama）/ 「介護保険法第8条…」→ `tier:cloud`（段1判定→OpenCode Go 実応答）/ token無し→401 / 空prompt→400。
+  - typecheck(api+web) 緑、既存 Vitest 10件 緑。
+- ハマり所/注記:
+  - **llama3.2:1b の自己申告 confidence はノイズ大**（「こんにちは」に confidence:1 で answer:"正解" 等）。PoC目的=ルーティングの型が動く確認。本番は logprobs/複雑度分類器へ差し替え前提。
+  - `OPENCODE_API_KEY` は `apps/api/.env`（コード直書き禁止）。
+- 後続(任意): `WorkersAiProvider`(prod edge=Workers AI binding, localhost不可対策) / `wrangler.toml [ai]` / `OPENCODE_API_KEY` を wrangler secret 化 / 越境型 hc<AppType> での web 連携。
+
+### 本番化の改善順序（ADR 0001 採択 2026-06-16）
+
+> `docs/adr/0001-edge-routing-improvement-order.md`。順序: 評価セット → **複雑度分類器(A-2)** → 閾値調整 → logprob confidence(A-1) → RAG → モデル増強。
+> 決め手: logprobも自己申告confidenceも「1Bモデル自身の認識」に依存し失敗モードを共有。独立した複雑度分類器の方がROI高い。
+
+- **Step1 完了（評価基盤）**: `apps/api/eval/routing-gold.ts`(介護gold 34件・cloud寄り層化・ラベル暫定/要実務者レビュー) + `eval/eval-routing.ts`(計測)。`npm run eval:routing -w @hybrid/api`。
+  - 注目クラス=cloud、FN(本来cloud→edge)重視、非対称コスト FN:FP=10:1、Recall目標90%。
+  - **ベースライン(段1 rule-base)結果 = Red**: Recall **15%**(cloud 20件中TP3/FN17)、Precision100%、加重コスト170。→ rule-baseはキーワード非含有の難問(回数判断/加算算定/個別ケース)を取りこぼす定量証拠。Step2(Embedding+LR分類器)で改善対象。
+- **Step2-3 完了（分類器＋閾値調整）**:
+  - LR→**セントロイド・コサイン**へ逸脱（llama3.2:1bのみ＝2048次元×少数ラベルでLRは過学習）。`src/lib/embed.ts`(EmbedProvider二刀流), `src/lib/classify-embed.ts`(buildCentroidClassifier), `eval/routing-train.ts`(学習24件・リーク防止)。
+  - 閾値 t* は train で加重コスト最小化(FN:FP=10:1)→held-out適用。**Recall 15%→40%→90%、FN 17→2、コスト 170→24**。既存Vitest10件・typecheck緑。
+  - 残: FN2/Precision81.8%（llama3.2:1b埋め込み限界）。**ライブ`ai.ts`未wiring**（embed1回/起動時セントロイド構築のlatency判断＝Step2b）。
+- 次候補: (a) Step2b ライブ`ai.ts`へ分類器組込 / (b) goldラベルの実務者レビュー / (c) Step5 RAG・専用embed(bge)・モデル増強 / (d) WorkersAiEmbedProvider(prod)。
+
 ## 関連
 
 - 設計の経緯: `functest-hono/memo.md`、メモリ `functest-variants.md` / `engineering-priority-authz-over-authn.md`
