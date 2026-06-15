@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: functest_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d functest_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql://app:app@localhost:5432/functest_test?schema=public
+      DATABASE_URL: postgresql://app:app@localhost:5432/functest_test?schema=public
+      AUTH_SECRET: ci-secret-ci-secret-ci-secret-1234567890
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Push schema to test DB
+        run: npm run db:test:push
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test (unit + integration)
+        run: npm run test
+
+      - name: Build
+        run: npm run build

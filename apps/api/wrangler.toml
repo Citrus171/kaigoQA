@@ -1,0 +1,14 @@
+name = "functest-hono"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Workers では Neon serverless ドライバ(HTTP)を使う。
+[vars]
+DB_DRIVER = "neon"
+
+# 機密はバインド変数ではなく secret で投入する:
+#   wrangler secret put DATABASE_URL   # Neon の接続文字列
+#   wrangler secret put JWT_SECRET
+#
+# ローカル開発は wrangler を使わず `npm run dev`（Node ランタイム + docker Postgres）。

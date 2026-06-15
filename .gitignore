@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# env / secrets（.env.example は追跡する）
+.env
+.env.*
+!.env.example
+
+# build outputs
+.next/
+dist/
+build/
+out/
+.turbo/
+
+# logs
+*.log
+npm-debug.log*
+
+# db / local data
+*.sqlite
+*.sqlite3
+*.db
+edge.db
+
+# docs（ローカルメモ・設計資料は追跡しない）
+docs/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,17 @@
+{
+  "name": "functest-hybrid",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:api": "npm run dev -w @hybrid/api",
+    "dev:web": "npm run dev -w @hybrid/web",
+    "db:up": "npm run db:up -w @hybrid/api",
+    "db:down": "npm run db:down -w @hybrid/api",
+    "db:push": "npm run db:push -w @hybrid/api",
+    "db:seed": "npm run db:seed -w @hybrid/api",
+    "test:api": "npm run test -w @hybrid/api",
+    "typecheck": "npm run typecheck -w @hybrid/api && npm run typecheck -w @hybrid/web",
+    "build:web": "npm run build -w @hybrid/web"
+  }
+}
