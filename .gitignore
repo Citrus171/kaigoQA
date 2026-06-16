@@ -31,3 +31,6 @@ docs/
 *.swp
 .idea/
 .vscode/
+
+# E2E eval 実行成果物（非決定的・大きい。再生成可）
+apps/api/eval/data/e2e-*.jsonl
