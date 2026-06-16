@@ -23,8 +23,8 @@ export interface EmbedClassifier {
   classifyBatch(queries: string[]): Promise<{ tier: Tier; score: number }[]>;
 }
 
-/** 複数ベクトルの平均→L2正規化（セントロイド）。 */
-function centroid(vectors: number[][]): number[] {
+/** 複数ベクトルの平均→L2正規化（セントロイド）。build:model でも再利用。 */
+export function centroid(vectors: number[][]): number[] {
   const dim = vectors[0]!.length;
   const sum = new Array<number>(dim).fill(0);
   for (const v of vectors) {

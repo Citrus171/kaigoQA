@@ -1,59 +1,40 @@
 // ライブの段1ルータ（ADR 0001 Step2b = ai.ts wiring）。
-// セントロイド分類器をプロセス内で一度だけ構築（プロトタイプ埋め込みは起動時1回）し、
-// 以降はリクエスト毎にプロンプト1件を埋め込んで edge/cloud を判定する。
 //
-// 閾値は起動時に非対称コストでチューニング（env で上書き可・ハードコード回避）。
-// ※ dev=Ollama 埋め込み前提。prod は別の埋め込み空間のため再構築・再チューニングが必要。
+// 事前計算済みの成果物（models/routing/current.json）をロードし、実行時は受信プロンプト
+// 1件だけを埋め込んで edge/cloud を判定する。起動時のプロトタイプ再埋め込み（旧実装）は廃止:
+//   - コールドスタート誤振り分けが消える（起動直後から確定済み境界）。
+//   - dev/prod 決定性（成果物は build:model で git に固定。再現は npm run build:model）。
+// 成果物の作り直しは scripts/build-routing-model.ts（npm run build:model -w @hybrid/api）。
+//
+// 閾値は成果物に同梱（build 時に train で非対称コスト最小化）。env で上書き可（実験用）。
+// ※ 埋め込みモデルは成果物の embedModel に合わせる（取り違えは classify 時に次元不一致で throw）。
 
-import type { EmbedProvider } from "@/lib/embed";
-import { buildCentroidClassifier, tuneThreshold } from "@/lib/classify-embed";
-import type { Tier } from "@/lib/classify-embed";
-import { routingPrototypes } from "@/lib/routing-prototypes";
+import { OllamaEmbedProvider, type EmbedProvider } from "@/lib/embed";
+import {
+  parseRoutingModel,
+  classifierFromModel,
+  type RoutingClassifier,
+} from "@/lib/routing-model";
+import currentArtifact from "../../models/routing/current.json";
 
-const COST_FN = Number(process.env.AI_ROUTER_COST_FN ?? 10);
-const COST_FP = Number(process.env.AI_ROUTER_COST_FP ?? 1);
+export type { RoutingClassifier };
 
-export interface RoutingClassifier {
-  classify(prompt: string): Promise<{ tier: Tier; score: number }>;
+// 起動時に1度だけ検証・展開（埋め込み計算は伴わない＝コールドスタートなし）。
+const model = parseRoutingModel(currentArtifact);
+
+const thresholdOverride = process.env.AI_ROUTER_THRESHOLD;
+if (thresholdOverride !== undefined && thresholdOverride.trim() !== "") {
+  model.threshold = Number(thresholdOverride);
 }
 
-// 埋め込みプロバイダ単位でキャッシュ（dev では実質1インスタンス）。
-const cache = new WeakMap<EmbedProvider, Promise<RoutingClassifier>>();
-
-export function getRoutingClassifier(
-  embed: EmbedProvider,
-): Promise<RoutingClassifier> {
-  let built = cache.get(embed);
-  if (!built) {
-    built = build(embed);
-    cache.set(embed, built);
-  }
-  return built;
-}
-
-async function build(embed: EmbedProvider): Promise<RoutingClassifier> {
-  // bias=0 で構築し、score = sim(cloud)-sim(edge)（生の margin）を得る。
-  const base = await buildCentroidClassifier(routingPrototypes, embed, 0);
-
-  let threshold: number;
-  const override = process.env.AI_ROUTER_THRESHOLD;
-  if (override !== undefined && override.trim() !== "") {
-    threshold = Number(override);
-  } else {
-    const scored = await base.classifyBatch(routingPrototypes.map((p) => p.query));
-    threshold = tuneThreshold(
-      scored.map((s) => s.score),
-      routingPrototypes.map((p) => p.label),
-      COST_FN,
-      COST_FP,
-    );
-  }
-
-  return {
-    async classify(prompt: string) {
-      const [r] = await base.classifyBatch([prompt]);
-      const score = r!.score;
-      return { tier: score > threshold ? "cloud" : "edge", score };
-    },
-  };
+/**
+ * 成果物から段1ルータを得る。
+ * embed 未指定時は成果物の embedModel で Ollama を構築（serving と成果物の埋め込み空間を一致させる）。
+ * prod（Workers AI 埋め込み）は将来この引数で注入する（Provider 抽象の seam を維持）。
+ */
+export function getRoutingClassifier(embed?: EmbedProvider): RoutingClassifier {
+  return classifierFromModel(
+    model,
+    embed ?? new OllamaEmbedProvider(undefined, model.embedModel),
+  );
 }

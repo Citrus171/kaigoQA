@@ -4,7 +4,6 @@ import { HTTPException } from "hono/http-exception";
 import { aiAskSchema } from "@/lib/schemas";
 import { authMiddleware } from "@/auth/middleware";
 import { classifyComplexity } from "@/lib/classify";
-import { OllamaEmbedProvider } from "@/lib/embed";
 import { getRoutingClassifier } from "@/lib/routing";
 import {
   InferenceError,
@@ -32,19 +31,16 @@ function pickEdge(_c: unknown): InferProvider {
   return new OllamaProvider();
 }
 
-// 段1ルータの埋め込みは使い回す（同一インスタンスでセントロイドを再利用）。
-// dev=Ollama。prod 埋め込み(bge等)は後続で c.env から解決する。
-const embedProvider = USE_CLASSIFIER ? new OllamaEmbedProvider() : null;
-
-// 段1: edge/cloud の事前判定。classifier 有効時は埋め込み分類器、
+// 段1: edge/cloud の事前判定。classifier 有効時は成果物(current.json)ベースの分類器、
 // 失敗時/無効時は rule-base にフォールバック（グレースフル）。
+// 埋め込みモデルは成果物の embedModel に従う（routing.ts が解決）。prod 埋め込みは将来注入。
 async function preRoute(prompt: string): Promise<"edge" | "cloud"> {
-  if (embedProvider) {
+  if (USE_CLASSIFIER) {
     try {
-      const classifier = await getRoutingClassifier(embedProvider);
+      const classifier = getRoutingClassifier();
       return (await classifier.classify(prompt)).tier;
     } catch {
-      // 埋め込み不通でも応答を止めない。rule-base へ退避。
+      // 埋め込み不通・次元不一致でも応答を止めない。rule-base へ退避。
     }
   }
   return classifyComplexity(prompt) === "complex" ? "cloud" : "edge";

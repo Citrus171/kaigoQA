@@ -19,6 +19,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "build:model": "tsx scripts/build-routing-model.ts",
     "eval:routing": "tsx eval/eval-routing.ts",
     "eval:calibration": "tsx eval/eval-calibration.ts",
     "token": "tsx scripts/dev-token.ts",
