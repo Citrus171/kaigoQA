@@ -20,6 +20,7 @@ interface Row {
   category: string;
   borderline: boolean;
   reviewStatus: string;
+  answerSource: string;
   note: string;
 }
 
@@ -37,6 +38,7 @@ const rows: Row[] = [
       category: t.category,
       borderline: t.borderline,
       reviewStatus: t.reviewStatus,
+      answerSource: "—", // train は answerSource 未付与（Layer1 用）。
       note: "",
     })),
   ...loadGold()
@@ -49,6 +51,7 @@ const rows: Row[] = [
       category: g.category,
       borderline: g.borderline,
       reviewStatus: g.reviewStatus,
+      answerSource: g.answerSource,
       note: g.note ?? "",
     })),
 ];
@@ -60,14 +63,14 @@ const cell = (v: string | boolean) => {
 };
 
 const header = [
-  "id", "set", "query", "currentLabel", "category", "borderline", "reviewStatus",
-  "note", "reviewedLabel", "reviewerNote", // ← 実務者記入用（空）
+  "id", "set", "query", "currentLabel", "category", "answerSource", "borderline",
+  "reviewStatus", "note", "reviewedLabel", "reviewerNote", // ← 実務者記入用（空）
 ];
 const lines = [
   header.join(","),
   ...rows.map((r) =>
     [
-      r.id, r.set, r.query, r.currentLabel, r.category, r.borderline,
+      r.id, r.set, r.query, r.currentLabel, r.category, r.answerSource, r.borderline,
       r.reviewStatus, r.note, "", "",
     ].map(cell).join(","),
   ),
