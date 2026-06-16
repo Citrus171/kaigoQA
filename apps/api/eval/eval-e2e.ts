@@ -35,6 +35,7 @@ interface Gen {
   latencyMs: number;
   genFailed: boolean;
   verdict: JudgeVerdict | null;
+  skipped?: boolean; // E2E_ONLY_CLOUD で edge 生成を省いた場合 true（失敗とは区別する）
 }
 
 interface CaseRecord {
@@ -92,10 +93,15 @@ async function main() {
   // E2E_LIMIT で件数を絞れる（疎通確認用）。未指定なら全件。
   const limit = Number(process.env.E2E_LIMIT ?? 0);
   const gold = limit > 0 ? loadGold().slice(0, limit) : loadGold();
+  // E2E_ONLY_CLOUD=1: edge生成(gemma3:4b)を省き、振り分け(bge-m3)+cloud生成+judgeのみ実行。
+  //   GPU不在のCPU環境で always-cloud の絶対品質/latency を先取り確定するための代理モード。
+  //   always-edge と routed(edge側) の品質は測れない＝GPUセッションで取得する。
+  const onlyCloud = process.env.E2E_ONLY_CLOUD === "1";
 
   console.log("=== E2E評価（3ポリシー比較）===");
   console.log(`edge=${edge.name} / cloud=${cloud.name} / judge=${judgeName}（cloudと同一＝自己採点注意）`);
   console.log(`gold=${gold.length}件${limit > 0 ? `（E2E_LIMIT=${limit}）` : ""}。`);
+  if (onlyCloud) console.log("⚠ E2E_ONLY_CLOUD=1: edge生成をスキップ（always-cloud品質/latencyのみ確定。edge側はGPU測定待ち）。");
 
   // フェーズ1: 全件の振り分けを先に確定（bge-m3 を連続使用＝gemma3:4b との交互ロード回避）。
   process.stdout.write("  [1/2] 振り分け(bge-m3)…");
@@ -109,10 +115,12 @@ async function main() {
   for (let i = 0; i < gold.length; i++) {
     const g = gold[i]!;
     const { tier, score } = routings[i]!;
-    const e = await timed(async () => (await edge.infer(g.query)).text);
+    const e = onlyCloud
+      ? { answer: "", latencyMs: 0, genFailed: false, skipped: true }
+      : await timed(async () => (await edge.infer(g.query)).text);
     const c = await timed(async () => (await cloud.infer(g.query)).text);
     const [ev, cv] = await Promise.all([
-      judgeOrNull(cloud, g.query, e.answer, e.genFailed),
+      e.skipped ? Promise.resolve(null) : judgeOrNull(cloud, g.query, e.answer, e.genFailed),
       judgeOrNull(cloud, g.query, c.answer, c.genFailed),
     ]);
     records.push({
@@ -137,6 +145,7 @@ async function main() {
     const a: Agg = { good: 0, n: 0, lat: [], cloudCalls: 0, routingMiss: 0 };
     for (const rec of records) {
       const gen = genOf(rec, p);
+      if (gen.skipped) continue; // edge未測定の件は当該ポリシーの母数から除外（onlyCloud時）
       const usedCloud =
         p === "always-cloud" || (p === "routed" && rec.routing.predictedTier === "cloud");
       a.n++;
@@ -149,24 +158,40 @@ async function main() {
     aggs.set(p, a);
   }
 
+  // 振り分け分布（コスト/latencyの素地。onlyCloud でも常に正確に出る）。
+  const routedEdge = records.filter((r) => r.routing.predictedTier === "edge").length;
+  const routedCloud = records.length - routedEdge;
+  console.log(`\n  振り分け分布: edge=${routedEdge}件 / cloud=${routedCloud}件（routedのcloud呼数=${routedCloud}/${records.length}）`);
+
   console.log("=== ポリシー比較（gold全件・品質は他者採点でないcloud側が楽観）===");
   console.log("  policy        | Quality(good率) | p50 lat | p95 lat | cloud呼数 | routing-miss");
   for (const p of policies) {
     const a = aggs.get(p)!;
+    if (a.n === 0) {
+      console.log(`  ${p.padEnd(13)} | ${"（GPU測定待ち）".padStart(11)} | edge生成スキップ中`);
+      continue;
+    }
     const miss = p === "routed" ? String(a.routingMiss) : "—";
     console.log(
       `  ${p.padEnd(13)} | ${pct(a.good, a.n).padStart(13)} | ${String(pctl(a.lat, 50)).padStart(5)}ms | ${String(pctl(a.lat, 95)).padStart(5)}ms | ${String(a.cloudCalls).padStart(7)}/${a.n} | ${miss}`,
     );
   }
 
-  const q = (p: Policy) => aggs.get(p)!.good / aggs.get(p)!.n;
-  const loss = q("always-cloud") - q("routed");
-  console.log(`\n  ★Quality loss (AlwaysCloud − Routed) = ${(loss * 100).toFixed(1)}pt`);
-  console.log(
-    loss <= 0.05
-      ? "   → 小（≤5pt）。routerは低コストでcloud並み品質＝採用価値あり（自己採点込みで保守的）。"
-      : "   → 大（>5pt）。ただしcloud側自己採点インフレ分を含む。router改善 or cloud直送を要検討。",
-  );
+  if (onlyCloud) {
+    console.log(
+      `\n  ★Quality loss は edge未測定のため算出不可（routedはcloud側${routedCloud}件のみ採点）。` +
+        `\n   → always-cloud の絶対品質/latencyを確定。edge側はGPUセッションで取得し本指標を完成させる。`,
+    );
+  } else {
+    const q = (p: Policy) => aggs.get(p)!.good / aggs.get(p)!.n;
+    const loss = q("always-cloud") - q("routed");
+    console.log(`\n  ★Quality loss (AlwaysCloud − Routed) = ${(loss * 100).toFixed(1)}pt`);
+    console.log(
+      loss <= 0.05
+        ? "   → 小（≤5pt）。routerは低コストでcloud並み品質＝採用価値あり（自己採点込みで保守的）。"
+        : "   → 大（>5pt）。ただしcloud側自己採点インフレ分を含む。router改善 or cloud直送を要検討。",
+    );
+  }
 
   // --- failure taxonomy（routed の失敗内訳）---
   const routedCats = new Map<FailureCategory | "routing-miss", number>();
@@ -175,6 +200,7 @@ async function main() {
       routedCats.set("routing-miss", (routedCats.get("routing-miss") ?? 0) + 1);
     }
     const gen = genOf(rec, "routed");
+    if (gen.skipped) continue; // edge未測定（onlyCloud）の件は failure として数えない
     const cat = gen.verdict?.category ?? "refusal";
     if (cat !== "ok") routedCats.set(cat, (routedCats.get(cat) ?? 0) + 1);
   }
@@ -184,7 +210,7 @@ async function main() {
   }
 
   // --- 永続化（後日 別judge/reference で再採点できるよう全記録を保存）---
-  const slug = edge.name.replace(/[^a-z0-9]+/gi, "-");
+  const slug = (onlyCloud ? `${cloud.name}-cloudonly` : edge.name).replace(/[^a-z0-9]+/gi, "-");
   const outPath = join(dirname(fileURLToPath(import.meta.url)), "data", `e2e-${slug}.jsonl`);
   writeFileSync(outPath, records.map((r) => JSON.stringify(r)).join("\n") + "\n");
   console.log(`\n保存: ${outPath}（${records.length}件・回答本文/latency/judge結果を含む）`);

@@ -92,6 +92,8 @@ export class OpenCodeProvider implements InferProvider {
     private readonly key = process.env.OPENCODE_API_KEY,
     private readonly url = "https://opencode.ai/zen/go/v1/chat/completions",
     private readonly model = "deepseek-v4-flash",
+    // 応答が返らない1件で評価全体が無限停止するのを防ぐ。env で上書き可（既定60s）。
+    private readonly timeoutMs = Number(process.env.OPENCODE_TIMEOUT_MS ?? 60000),
   ) {}
 
   async infer(prompt: string) {
@@ -110,9 +112,13 @@ export class OpenCodeProvider implements InferProvider {
           model: this.model,
           messages: [{ role: "user", content: prompt }],
         }),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
-      throw new InferenceError(this.name, "OpenCode Go に接続できません", e);
+      const reason = e instanceof Error && e.name === "TimeoutError"
+        ? `OpenCode Go が ${this.timeoutMs}ms 以内に応答しませんでした`
+        : "OpenCode Go に接続できません";
+      throw new InferenceError(this.name, reason, e);
     }
     if (!res.ok) {
       throw new InferenceError(
