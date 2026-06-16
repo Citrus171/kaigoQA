@@ -16,7 +16,7 @@
 // 実行: npm run eval:e2e -w @hybrid/api （要 Ollama[gen+bge-m3] 起動 + OPENCODE_API_KEY）
 //   edge生成モデルは OLLAMA_GEN_MODEL（既定 gemma3:4b 推奨）。
 
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OllamaProvider, OpenCodeProvider } from "../src/lib/inference";
@@ -212,6 +212,7 @@ async function main() {
   // --- 永続化（後日 別judge/reference で再採点できるよう全記録を保存）---
   const slug = (onlyCloud ? `${cloud.name}-cloudonly` : edge.name).replace(/[^a-z0-9]+/gi, "-");
   const outPath = join(dirname(fileURLToPath(import.meta.url)), "data", `e2e-${slug}.jsonl`);
+  mkdirSync(dirname(outPath), { recursive: true }); // data/ 不在でも全計算後の保存を失わない
   writeFileSync(outPath, records.map((r) => JSON.stringify(r)).join("\n") + "\n");
   console.log(`\n保存: ${outPath}（${records.length}件・回答本文/latency/judge結果を含む）`);
 }
