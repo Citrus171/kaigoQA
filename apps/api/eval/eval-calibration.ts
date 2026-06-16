@@ -14,8 +14,10 @@
 import { OllamaProvider } from "../src/lib/inference";
 import { OllamaEmbedProvider } from "../src/lib/embed";
 import { buildCentroidClassifier, tuneThreshold } from "../src/lib/classify-embed";
-import { routingPrototypes as routingTrain } from "../src/lib/routing-prototypes";
-import { routingGold, type Tier } from "./routing-gold";
+import { loadTrain, loadGold, type Tier } from "./data/load";
+
+const routingTrain = loadTrain();
+const routingGold = loadGold();
 
 const COST_FN = 10;
 const COST_FP = 1;

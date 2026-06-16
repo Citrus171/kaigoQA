@@ -11,7 +11,9 @@
   "scripts": {
     "dev": "tsx watch src/dev.ts",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run test",
+    "check": "npm run typecheck && npm run check:data && npm run test",
+    "check:data": "tsx scripts/check-data.ts",
+    "review:export": "tsx scripts/export-review.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:push": "drizzle-kit push",

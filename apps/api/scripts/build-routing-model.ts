@@ -19,9 +19,11 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OllamaEmbedProvider, cosine, l2normalize } from "../src/lib/embed";
 import { centroid, tuneThreshold, type Tier } from "../src/lib/classify-embed";
-import { routingPrototypes as routingTrain } from "../src/lib/routing-prototypes";
-import { routingGold } from "../eval/routing-gold";
+import { loadTrain, loadGold } from "../eval/data/load";
 import { routingModelSchema, type RoutingModel } from "../src/lib/routing-model";
+
+const routingTrain = loadTrain();
+const routingGold = loadGold();
 
 const COST_FN = Number(process.env.AI_ROUTER_COST_FN ?? 10);
 const COST_FP = Number(process.env.AI_ROUTER_COST_FP ?? 1);

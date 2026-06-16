@@ -13,8 +13,10 @@
 import { classifyComplexity } from "../src/lib/classify";
 import { OllamaEmbedProvider } from "../src/lib/embed";
 import { buildCentroidClassifier, tuneThreshold } from "../src/lib/classify-embed";
-import { routingPrototypes as routingTrain } from "../src/lib/routing-prototypes";
-import { routingGold, type GoldCase, type Tier } from "./routing-gold";
+import { loadTrain, loadGold, type GoldCase, type Tier } from "./data/load";
+
+const routingTrain = loadTrain();
+const routingGold = loadGold();
 
 const COST_FN = 10;
 const COST_FP = 1;

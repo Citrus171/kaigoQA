@@ -1,0 +1,7 @@
+id,set,query,currentLabel,category,borderline,reviewStatus,note,reviewedLabel,reviewerNote
+train-13,train,要介護認定の有効期間はどう決まりますか,edge,system-fact,true,pending,,,
+train-14,train,要支援と要介護でケアマネの担当はどう変わりますか,edge,system-fact,true,pending,,,
+gold-15,gold,要介護認定はどのように決まりますか,edge,system-fact,true,pending,認定の流れの一般説明,,
+gold-16,gold,サービス担当者会議の開催義務について教えてください,edge,system-fact,true,pending,義務の事実説明,,
+gold-17,gold,要支援1から要介護1に変わると使えるサービスはどう変わる？,edge,system-fact,true,pending,区分での一般的な差,,
+gold-22,gold,母が要介護3で、在宅と施設どちらがよいか迷っています,cloud,case-judgment,true,pending,,,
