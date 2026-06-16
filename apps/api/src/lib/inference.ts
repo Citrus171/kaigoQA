@@ -85,16 +85,20 @@ export class OllamaProvider implements InferProvider {
  * confidence はゲートウェイから返らないため固定の高値を割り当てる（PoC）。
  */
 export class OpenCodeProvider implements InferProvider {
-  readonly name = "opencode-go:deepseek-v4-flash";
+  readonly name: string;
   // クラウドLLMはエッジより信頼度が高い前提で固定値（confidence算出は本番課題）。
   private static readonly CLOUD_CONFIDENCE = 0.8;
   constructor(
     private readonly key = process.env.OPENCODE_API_KEY,
     private readonly url = "https://opencode.ai/zen/go/v1/chat/completions",
-    private readonly model = "deepseek-v4-flash",
+    // cloud生成 + LLM-as-Judge に使うモデル。env で上書き可（既定 deepseek-v4-pro）。
+    // 介護保険ドメインは事実正確性が最優先のため flash ではなく pro を既定とする。
+    private readonly model = process.env.OPENCODE_MODEL ?? "deepseek-v4-pro",
     // 応答が返らない1件で評価全体が無限停止するのを防ぐ。env で上書き可（既定60s）。
     private readonly timeoutMs = Number(process.env.OPENCODE_TIMEOUT_MS ?? 60000),
-  ) {}
+  ) {
+    this.name = `opencode-go:${this.model}`;
+  }
 
   async infer(prompt: string) {
     if (!this.key) {
