@@ -19,35 +19,49 @@ export class InferenceError extends Error {
   }
 }
 
-// confidence は 0-1 にクランプ。SLM の自己申告は範囲外/非数を返しうる。
-function clampConfidence(v: unknown): number {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(1, n));
+// 介護一次対応の system prompt。事実不明は「施設にご確認ください」とし推測させない、
+// 医療診断・法令断定を禁止（Layer2 ガードレールと方針を揃える）。
+export const EDGE_SYSTEM_PROMPT =
+  "あなたは介護施設の一次対応アシスタントです。利用者の質問に日本語で簡潔に(2〜3文)答えてください。" +
+  "事実が確認できない場合や施設固有の情報は推測せず「施設にご確認ください」と述べること。" +
+  "医療診断・投薬指示・法令の断定はしないこと。";
+
+// 出力の自己申告 confidence は信頼できない（calibration eval）。代わりに「退化出力か否か」を
+// 透過的なヒューリスティックで判定し、退化時は低 confidence にして段2でエスカレさせる。
+const DEGENERATE = /^(true|false|null|undefined|\d+(\.\d+)?)$/i;
+function outputConfidence(text: string): number {
+  const t = text.trim();
+  if (t === "" || t.length < 6 || DEGENERATE.test(t)) return 0; // 空/極短/型値 → 退化
+  return 0.7; // 非退化（=形式的には回答できている。事実性は Layer2 で別途評価）。
 }
 
 /**
- * dev edge SLM: ローカル Ollama (llama3.2:1b)。
- * format:"json" で {answer, confidence} を構造化出力させる。
+ * dev edge SLM: ローカル Ollama（既定 llama3.2:1b、env OLLAMA_GEN_MODEL で差替可）。
+ * 自然文で一次回答を生成する（format:"json" は 1b で退化出力を招くため廃止）。
+ * confidence は出力の妥当性ヒューリスティック（退化→0でエスカレ、それ以外0.7）。
  */
 export class OllamaProvider implements InferProvider {
-  readonly name = "ollama:llama3.2:1b";
+  readonly name: string;
   constructor(
     private readonly url = process.env.OLLAMA_URL ?? "http://localhost:11434",
-    private readonly model = "llama3.2:1b",
-  ) {}
+    private readonly model = process.env.OLLAMA_GEN_MODEL ?? "llama3.2:1b",
+  ) {
+    this.name = `ollama:${this.model}`;
+  }
 
   async infer(prompt: string) {
     let res: Response;
     try {
-      res = await fetch(`${this.url}/api/generate`, {
+      res = await fetch(`${this.url}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: this.model,
-          prompt: `${prompt}\n\nJSONで {"answer": string, "confidence": 0-1の数値} のみ返答。`,
-          format: "json",
           stream: false,
+          messages: [
+            { role: "system", content: EDGE_SYSTEM_PROMPT },
+            { role: "user", content: prompt },
+          ],
         }),
       });
     } catch (e) {
@@ -56,17 +70,12 @@ export class OllamaProvider implements InferProvider {
     if (!res.ok) {
       throw new InferenceError(this.name, `Ollama が ${res.status} を返しました`);
     }
-    const data = (await res.json()) as { response?: string };
-    let parsed: { answer?: unknown; confidence?: unknown };
-    try {
-      parsed = JSON.parse(data.response ?? "{}");
-    } catch (e) {
-      throw new InferenceError(this.name, "Ollama 応答の JSON 解析に失敗", e);
+    const data = (await res.json()) as { message?: { content?: unknown } };
+    const text = String(data.message?.content ?? "").trim();
+    if (text === "") {
+      throw new InferenceError(this.name, "Ollama が空応答を返しました");
     }
-    return {
-      text: String(parsed.answer ?? ""),
-      confidence: clampConfidence(parsed.confidence),
-    };
+    return { text, confidence: outputConfidence(text) };
   }
 }
 
