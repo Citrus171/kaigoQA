@@ -6,13 +6,18 @@ import { authMiddleware } from "@/auth/middleware";
 import { classifyComplexity } from "@/lib/classify";
 import { getRoutingClassifier } from "@/lib/routing";
 import {
+  detectRiskyAssertion,
+  withDisclaimer,
+  type GuardrailResult,
+} from "@/lib/guardrail";
+import {
   InferenceError,
   OllamaProvider,
   OpenCodeProvider,
   type InferProvider,
 } from "@/lib/inference";
 import type { AppEnv } from "@/types";
-import type { AiAnswer } from "@hybrid/shared";
+import type { AiAnswer, AiTier } from "@hybrid/shared";
 
 // edge SLM が自信を持てる下限。これ未満なら cloud へエスカレーション。
 const EDGE_CONFIDENCE_THRESHOLD = 0.6;
@@ -46,6 +51,27 @@ async function preRoute(prompt: string): Promise<"edge" | "cloud"> {
   return classifyComplexity(prompt) === "complex" ? "cloud" : "edge";
 }
 
+// 応答を組み立てる単一の出口。Layer2 ガードレール（免責文を常時付与）をここで一元適用。
+function finalize(
+  text: string,
+  tier: AiTier,
+  confidence: number,
+  model: string,
+  guardrail?: GuardrailResult,
+): AiAnswer {
+  return {
+    answer: withDisclaimer(text),
+    tier,
+    confidence,
+    model,
+    safety: {
+      disclaimer: true,
+      escalatedByGuardrail: guardrail?.risky ?? false,
+      reasons: guardrail?.reasons ?? [],
+    },
+  };
+}
+
 // hc 型推論のためチェーンで定義。要認証（JWT middleware）。
 export const aiRoutes = new Hono<AppEnv>()
   .use("*", authMiddleware)
@@ -58,36 +84,24 @@ export const aiRoutes = new Hono<AppEnv>()
       // 段1: edge/cloud 事前判定（分類器 or rule-base）。cloud なら SLM を飛ばす。
       if ((await preRoute(prompt)) === "cloud") {
         const r = await cloud.infer(prompt);
-        const body: AiAnswer = {
-          answer: r.text,
-          tier: "cloud",
-          confidence: r.confidence,
-          model: cloud.name,
-        };
-        return c.json(body);
+        return c.json(finalize(r.text, "cloud", r.confidence, cloud.name));
       }
 
-      // 段2: SLM 一次応答 + 自信スコア。閾値以上なら edge で完結。
+      // 段2: SLM 一次応答 + 自信スコア。閾値以上なら Layer2 ガードレールへ。
       const slm = await edge.infer(prompt);
       if (slm.confidence >= EDGE_CONFIDENCE_THRESHOLD) {
-        const body: AiAnswer = {
-          answer: slm.text,
-          tier: "edge",
-          confidence: slm.confidence,
-          model: edge.name,
-        };
-        return c.json(body);
+        // 出力ガードレール: 医療/法令の断定を検知したら edge 回答を破棄し cloud へ。
+        const guard = detectRiskyAssertion(slm.text);
+        if (!guard.risky) {
+          return c.json(finalize(slm.text, "edge", slm.confidence, edge.name));
+        }
+        const r = await cloud.infer(prompt);
+        return c.json(finalize(r.text, "cloud", r.confidence, cloud.name, guard));
       }
 
       // 自信不足 → cloud LLM へエスカレーション。
       const r = await cloud.infer(prompt);
-      const body: AiAnswer = {
-        answer: r.text,
-        tier: "cloud",
-        confidence: r.confidence,
-        model: cloud.name,
-      };
-      return c.json(body);
+      return c.json(finalize(r.text, "cloud", r.confidence, cloud.name));
     } catch (e) {
       if (e instanceof InferenceError) {
         // 推論バックエンド起因の失敗は 502（上流が不調）として返す。

@@ -31,15 +31,24 @@ export const aiAskSchema = z.object({
 // 応答の tier: edge=ローカル/エッジSLMで完結, cloud=クラウドLLMへエスカレーション。
 export const aiTierSchema = z.enum(["edge", "cloud"]);
 
+// 出力ガードレール(Layer2)の結果。免責付与の有無・断定検知でのエスカレ有無・検知理由。
+export const aiSafetySchema = z.object({
+  disclaimer: z.boolean(),
+  escalatedByGuardrail: z.boolean(),
+  reasons: z.array(z.string()),
+});
+
 export const aiAnswerSchema = z.object({
   answer: z.string(),
   tier: aiTierSchema,
   confidence: z.number().min(0).max(1),
   model: z.string(),
+  safety: aiSafetySchema,
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateTodoInput = z.infer<typeof createTodoSchema>;
 export type AiAskInput = z.infer<typeof aiAskSchema>;
 export type AiTier = z.infer<typeof aiTierSchema>;
+export type AiSafety = z.infer<typeof aiSafetySchema>;
 export type AiAnswer = z.infer<typeof aiAnswerSchema>;
