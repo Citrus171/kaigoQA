@@ -3,9 +3,9 @@
 // 旧: train を src/lib/routing-prototypes.ts、gold を eval/routing-gold.ts に TS リテラル直書き。
 // 新: データ形状（JSONL）に分離し、diff/追記/レビューしやすく・将来 Python からも読める形に。
 //   各行は安定 id / provenance / reviewStatus / borderline のメタを持つ（実務者レビューの土台）。
-//   gold は更に answerSource（回答ソース軸）を持つ。Layer2 品質evalの所見で「施設固有FAQは
+//   train/gold とも answerSource（回答ソース軸）を持つ。Layer2 品質evalの所見で「施設固有FAQは
 //   SLM/LLM単体では正答不可（RAG必須）」と判明したため、edge条件を満たさない facility-data 系を
-//   cloud へ再ラベルした（2026-06-16）。train/Layer1 への同定義適用＋モデル再ビルドは後続。
+//   train・gold 両方で cloud へ再ラベルし定義を整合させた（2026-06-16）。再ビルドは build:model。
 //
 // 検証は scripts/check-data.ts（npm run check:data）= スキーマ・リーク・重複・balance。
 // ここではロード時に zod でスキーマ検証する（壊れた行は即 throw）。
@@ -41,7 +41,7 @@ const baseSchema = z.object({
   borderline: z.boolean(),
 });
 
-export const trainSchema = baseSchema.extend({ label: tier });
+export const trainSchema = baseSchema.extend({ label: tier, answerSource });
 export const goldSchema = baseSchema.extend({
   expected: tier,
   answerSource,

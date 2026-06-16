@@ -38,7 +38,7 @@ const rows: Row[] = [
       category: t.category,
       borderline: t.borderline,
       reviewStatus: t.reviewStatus,
-      answerSource: "—", // train は answerSource 未付与（Layer1 用）。
+      answerSource: t.answerSource,
       note: "",
     })),
   ...loadGold()
