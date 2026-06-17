@@ -140,3 +140,65 @@ export class OpenCodeProvider implements InferProvider {
     return { text, confidence: OpenCodeProvider.CLOUD_CONFIDENCE };
   }
 }
+
+/**
+ * 独立 LLM-as-Judge 用プロバイダ（OpenAI互換・既定 OpenRouter 経由 GPT-4o）。
+ * 目的: 生成系(OpenCode/deepseek)と別系統の judge を注入し「自己採点バイアス」を除去する。
+ * base/model/key は env で差替可能なので、OpenRouter経由(GPT-4o/Claude等)でも OpenAI直でも使える。
+ * 生成には使わず再採点(rejudge)専用想定だが InferProvider 準拠なので judgeAnswer にそのまま渡せる。
+ */
+export class OpenRouterProvider implements InferProvider {
+  readonly name: string;
+  // judge 用途では confidence は使われない（judgeAnswer は .text のみ参照）。固定値。
+  private static readonly JUDGE_CONFIDENCE = 0.9;
+  constructor(
+    private readonly key = process.env.OPENROUTER_API_KEY,
+    // OpenAI互換の chat/completions エンドポイント。OpenAI直なら https://api.openai.com/v1/... を指定。
+    private readonly url = process.env.JUDGE_BASE_URL ??
+      "https://openrouter.ai/api/v1/chat/completions",
+    // 既定は OpenRouter のモデルID。OpenAI直なら "gpt-4o"、Claudeなら "anthropic/claude-opus-4" 等。
+    private readonly model = process.env.JUDGE_MODEL ?? "openai/gpt-4o",
+    private readonly timeoutMs = Number(process.env.JUDGE_TIMEOUT_MS ?? 60000),
+  ) {
+    this.name = `judge:${this.model}`;
+  }
+
+  async infer(prompt: string) {
+    if (!this.key) {
+      throw new InferenceError(this.name, "OPENROUTER_API_KEY が未設定です");
+    }
+    let res: Response;
+    try {
+      res = await fetch(this.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.model,
+          // 採点は決定論寄りにしたい（再現性のため temperature を下げる）。
+          temperature: 0,
+          messages: [{ role: "user", content: prompt }],
+        }),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (e) {
+      const reason = e instanceof Error && e.name === "TimeoutError"
+        ? `judge API が ${this.timeoutMs}ms 以内に応答しませんでした`
+        : "judge API に接続できません";
+      throw new InferenceError(this.name, reason, e);
+    }
+    if (!res.ok) {
+      throw new InferenceError(this.name, `judge API が ${res.status} を返しました`);
+    }
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const text = data.choices?.[0]?.message?.content;
+    if (typeof text !== "string") {
+      throw new InferenceError(this.name, "judge API 応答の形式が不正です");
+    }
+    return { text, confidence: OpenRouterProvider.JUDGE_CONFIDENCE };
+  }
+}

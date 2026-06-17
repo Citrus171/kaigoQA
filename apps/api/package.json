@@ -26,6 +26,7 @@
     "eval:calibration": "tsx eval/eval-calibration.ts",
     "eval:quality": "tsx eval/eval-quality.ts",
     "eval:e2e": "tsx eval/eval-e2e.ts",
+    "eval:rejudge": "tsx eval/rejudge.ts",
     "token": "tsx scripts/dev-token.ts",
     "cf:dev": "wrangler dev",
     "cf:deploy": "wrangler deploy"
