@@ -19,6 +19,8 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadEnv } from "../src/lib/load-env";
+loadEnv();
 import { OllamaProvider, OpenCodeProvider } from "../src/lib/inference";
 import { getRoutingClassifier } from "../src/lib/routing";
 import { loadGold, type Tier } from "./data/load";
