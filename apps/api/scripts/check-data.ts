@@ -67,6 +67,28 @@ function balance(name: string, labels: string[]) {
 balance("train", train.map((t) => t.label));
 balance("gold", gold.map((g) => g.expected));
 
+// 6. 参照回答（reference gold）の整合性。
+//    - approved なのに answer 欠落 = ハード違反（採点が壊れる）。
+//    - answer 有りなのに answerReview 欠落 = 状態未設定（pending 扱いの明示漏れ）→ 違反。
+//    - 進捗の可視化: approved / pending(下書き) 件数を出す。
+const withAnswer = gold.filter((g) => g.answer);
+const withPoints = gold.filter((g) => g.referencePoints?.length);
+const approved = gold.filter((g) => g.answerReview === "approved");
+const draftPending = gold.filter((g) => g.answer && g.answerReview === "pending");
+for (const g of gold) {
+  // approved なら採点可能な根拠（referencePoints か answer）が必須＝無いと参照採点が空振り。
+  if (g.answerReview === "approved" && !g.referencePoints?.length && !g.answer) {
+    errors.push(`reference: ${g.id} は answerReview=approved だが referencePoints も answer も空`);
+  }
+  // 参照素材（answer / referencePoints）が有るのに状態未設定 = pending を明示すべき。
+  if ((g.answer || g.referencePoints?.length) && !g.answerReview) {
+    errors.push(`reference: ${g.id} は参照素材有りだが answerReview 未設定（pending を明示）`);
+  }
+}
+console.log(
+  `  reference: answer付き=${withAnswer.length} / referencePoints付き=${withPoints.length} (approved=${approved.length} / 下書きpending=${draftPending.length})`,
+);
+
 for (const w of warns) console.log(`  ⚠️ ${w}`);
 if (errors.length) {
   console.error(`\n❌ ${errors.length} 件の違反:`);

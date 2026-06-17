@@ -10,7 +10,14 @@
 //   - 旧judge(deepseek)との一致度（= 自己採点が品質を過大評価していた度合いの定量化）
 //   - 再採点 verdict を全件 JSONL に保存（多数決judge追加や再集計の素地）
 //
+// 【Phase E】flip率モード（--repeat K, K≥2）: judgeノイズ床の定量化（投資C-2の効果検証）。
+//   生成回答を固定したまま、同一回答を judge に K 回かけ、参照あり(referencePoints)/なしの両方で
+//   isGoodAnswer の判定が揺れる割合（flip率=K回の判定が不一致な項目の割合）を比較する。
+//   参照採点でflip率が下がれば「参照採点はノイズ床を下げる」が実証される（[[stage2-eval-design]]）。
+//   対象は承認済み参照を持つ項目のみ（参照あり/なしの paired A/B）。
+//
 // 実行: OPENROUTER_API_KEY=... npm run eval:rejudge -w @hybrid/api -- <input.jsonl>
+//   flip率: ... -- <input.jsonl> --repeat 5   （または REJUDGE_REPEAT=5）
 //   入力省略時は eval/data/e2e-ollama-gemma3-4b.jsonl を採点。
 //   judge切替: JUDGE_MODEL=anthropic/claude-opus-4 等（env、OpenAI直なら JUDGE_BASE_URL も）。
 
@@ -19,7 +26,26 @@ import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OpenRouterProvider } from "../src/lib/inference";
 import { judgeAnswer, isGoodAnswer, type JudgeVerdict } from "./judge";
-import type { Tier } from "./data/load";
+import { loadGold, referencePointsOf, type Tier } from "./data/load";
+
+// gold を id→正規化query で引けるようにする（参照採点で承認済みの正解要点を渡すため）。
+// 入力 e2e JSONL の id は gold.id と同形（"gold-NN"）なので id 一致が基本。万一 id が
+// 揃わない入力に備え query 正規化マッチへフォールバックする（安全側＝無ければ参照なし採点）。
+// 採点基準は referencePointsOf（承認ゲート + referencePoints||answer 選択）に一元化。
+const normQuery = (s: string) => s.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+function buildReferenceLookup() {
+  const byId = new Map<string, string[]>();
+  const byQuery = new Map<string, string[]>();
+  for (const g of loadGold()) {
+    const points = referencePointsOf(g);
+    if (points) {
+      byId.set(g.id, points);
+      byQuery.set(normQuery(g.query), points);
+    }
+  }
+  return (id: string, query: string): string[] | undefined =>
+    byId.get(id) ?? byQuery.get(normQuery(query));
+}
 
 // eval:e2e が保存する 1 回答分のレコード（必要フィールドのみ。verdict は旧=deepseek採点）。
 interface GenRec {
@@ -56,15 +82,168 @@ const judgeable = (g: GenRec) => !g.skipped && !g.genFailed && g.answer.trim() !
 
 const pct = (n: number, d: number) => (d === 0 ? "—" : `${((n / d) * 100).toFixed(1)}%`);
 
+// 位置引数(入力パス) と --repeat K / REJUDGE_REPEAT を分離して取得。
+function parseArgs(): { inPath?: string; repeat: number } {
+  const args = process.argv.slice(2);
+  let inPath: string | undefined;
+  let repeat = Number(process.env.REJUDGE_REPEAT ?? 1);
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a === "--repeat") repeat = Number(args[++i]);
+    else if (a.startsWith("--repeat=")) repeat = Number(a.slice("--repeat=".length));
+    else if (!a.startsWith("--") && !inPath) inPath = a;
+  }
+  if (!Number.isFinite(repeat) || repeat < 1) repeat = 1;
+  return { inPath, repeat };
+}
+
+// 同一回答を judge に K 回かけ、各回の verdict と isGoodAnswer を返す（採点不能は安全側=bad）。
+async function judgeK(
+  judge: OpenRouterProvider,
+  query: string,
+  answer: string,
+  reference: string[] | undefined,
+  k: number,
+  onCall: () => void,
+): Promise<{ verdicts: JudgeVerdict[]; goods: boolean[] }> {
+  const verdicts: JudgeVerdict[] = [];
+  for (let i = 0; i < k; i++) {
+    let v: JudgeVerdict;
+    try {
+      v = await judgeAnswer(judge, query, answer, reference);
+    } catch {
+      v = { factual: false, overreach: false, sufficient: false, category: "refusal", reason: "judge採点不能" };
+    }
+    verdicts.push(v);
+    onCall();
+  }
+  return { verdicts, goods: verdicts.map(isGoodAnswer) };
+}
+
+// K回の good/bad 判定が不一致なら flip（判定が揺れた＝ノイズ）。全一致なら安定。
+const flipped = (goods: boolean[]) => goods.some((g) => g) && goods.some((g) => !g);
+const majorityGood = (goods: boolean[]) => goods.filter((g) => g).length * 2 > goods.length;
+
+// flip率モード（Phase E）。参照あり/なしで同一回答を K 回採点し flip率を比較する。
+interface FlipItem {
+  id: string;
+  side: "edge" | "cloud";
+  query: string;
+  off: { verdicts: JudgeVerdict[]; goods: boolean[]; flipped: boolean; majorityGood: boolean };
+  on: { verdicts: JudgeVerdict[]; goods: boolean[]; flipped: boolean; majorityGood: boolean };
+}
+
+async function runFlipMode(
+  records: CaseRec[],
+  judge: OpenRouterProvider,
+  refOf: (id: string, query: string) => string[] | undefined,
+  repeat: number,
+  here: string,
+  inPath: string,
+) {
+  // 対象 = 承認済み参照を持つ採点可能な (record, side)。参照あり/なしの paired A/B にする。
+  const targets: { rec: CaseRec; side: "edge" | "cloud"; reference: string[] }[] = [];
+  for (const rec of records) {
+    const reference = refOf(rec.id, rec.query);
+    if (!reference) continue;
+    for (const side of ["edge", "cloud"] as const) {
+      if (judgeable(rec[side])) targets.push({ rec, side, reference });
+    }
+  }
+
+  console.log("=== flip率モード（Phase E: 参照採点のノイズ床削減を実証）===");
+  console.log(`入力: ${inPath}（${records.length}件）`);
+  console.log(`judge: ${judge.name} / 温度=${judge.temperature} / 反復 K=${repeat} / 対象=参照あり項目 ${targets.length}件`);
+  if (judge.temperature === 0) {
+    console.log("⚠ 温度0では判定が決定論的でflipが起きません。JUDGE_TEMPERATURE=0.7 等を設定してください。");
+  }
+  console.log("");
+
+  if (targets.length === 0) {
+    console.log("⚠ 参照あり(answerReview=approved)の採点可能な項目が入力に存在しません。");
+    console.log("  flip率の paired 比較には、承認済み cloud 項目を含む全件 E2E JSONL が必要です。");
+    console.log("  （現状の cloudonly サンプルには edge2件のみで参照対象が無い。GPU full E2E の出力を入力に指定してください）");
+    return;
+  }
+
+  const totalCalls = targets.length * repeat * 2; // 参照なし K + 参照あり K
+  let done = 0;
+  const tick = () => process.stdout.write(`\r  judge呼び出し ${++done}/${totalCalls}`);
+
+  const items: FlipItem[] = [];
+  for (const { rec, side, reference } of targets) {
+    const g = rec[side];
+    const off = await judgeK(judge, rec.query, g.answer, undefined, repeat, tick); // 参照なし
+    const on = await judgeK(judge, rec.query, g.answer, reference, repeat, tick); // 参照あり
+    items.push({
+      id: rec.id,
+      side,
+      query: rec.query,
+      off: { ...off, flipped: flipped(off.goods), majorityGood: majorityGood(off.goods) },
+      on: { ...on, flipped: flipped(on.goods), majorityGood: majorityGood(on.goods) },
+    });
+  }
+  console.log("\n");
+
+  const offFlip = items.filter((it) => it.off.flipped).length;
+  const onFlip = items.filter((it) => it.on.flipped).length;
+  const n = items.length;
+
+  console.log("=== flip率（K回の good/bad 判定が揺れた項目の割合。低いほどノイズ床が低い）===");
+  console.log(`  参照なし採点: flip率 ${pct(offFlip, n)} (${offFlip}/${n})`);
+  console.log(`  参照あり採点: flip率 ${pct(onFlip, n)} (${onFlip}/${n})`);
+  const delta = offFlip - onFlip;
+  console.log(
+    `  → 参照採点による flip 削減: ${delta}件 (${pct(Math.abs(delta), n)} ${delta >= 0 ? "減" : "増"})`,
+  );
+
+  // 多数決 good率の差（参照ありで甘く/辛くなっていないかの副次確認）。
+  const offGood = items.filter((it) => it.off.majorityGood).length;
+  const onGood = items.filter((it) => it.on.majorityGood).length;
+  console.log(`\n  多数決good率: 参照なし ${pct(offGood, n)} / 参照あり ${pct(onGood, n)}`);
+
+  // flip した項目を列挙（どちらのモードで揺れたか）。
+  const flippedItems = items.filter((it) => it.off.flipped || it.on.flipped);
+  if (flippedItems.length) {
+    console.log("\n  flip 項目（off/on でK回の判定が揺れた）:");
+    for (const it of flippedItems) {
+      const f = (m: FlipItem["off"]) => `${m.goods.filter((g) => g).length}/${m.goods.length}good${m.flipped ? "⚡" : ""}`;
+      console.log(`    [${it.id}/${it.side}] off:${f(it.off)} on:${f(it.on)}  ${it.query}`);
+    }
+  }
+
+  // 保存（K回分の verdict 全件。再集計・多数決judge の素地）。
+  const judgeSlug = judge.name.replace(/[^a-z0-9]+/gi, "-");
+  const outPath = join(here, "data", `flip-${judgeSlug}-k${repeat}-${basename(inPath)}`);
+  writeFileSync(outPath, items.map((it) => JSON.stringify(it)).join("\n") + "\n");
+  console.log(`\n保存: ${outPath}（flip生データ ${items.length}項目 × off/on × K=${repeat}）`);
+}
+
 async function main() {
   const here = dirname(fileURLToPath(import.meta.url));
-  const inPath = process.argv[2] ?? join(here, "data", "e2e-ollama-gemma3-4b.jsonl");
+  const { inPath: argPath, repeat } = parseArgs();
+  const inPath = argPath ?? join(here, "data", "e2e-ollama-gemma3-4b.jsonl");
   const lines = readFileSync(inPath, "utf8").split("\n").filter((l) => l.trim() !== "");
   const records = lines.map((l) => JSON.parse(l) as CaseRec);
 
+  // flip率モードは判定の揺れを測るので非0温度が必須。未設定なら 0.7 を既定にする
+  // （JUDGE_TEMPERATURE を明示すれば尊重）。OpenRouterProvider 構築前に設定する。
+  if (repeat >= 2 && process.env.JUDGE_TEMPERATURE == null) {
+    process.env.JUDGE_TEMPERATURE = "0.7";
+  }
+
   const judge = new OpenRouterProvider();
+  const refOf = buildReferenceLookup();
+
+  // --repeat K（K≥2）が指定されたら flip率モードへ分岐（既存の単発再採点はそのまま）。
+  if (repeat >= 2) {
+    await runFlipMode(records, judge, refOf, repeat, here, inPath);
+    return;
+  }
+
+  const refCount = records.filter((r) => refOf(r.id, r.query)).length;
   console.log("=== 独立judge 再採点 ===");
-  console.log(`入力: ${inPath}（${records.length}件）`);
+  console.log(`入力: ${inPath}（${records.length}件 / うち参照採点=${refCount}件）`);
   console.log(`judge: ${judge.name}（生成=deepseek系と別系統＝自己採点バイアス無し）\n`);
 
   // edge/cloud の採点対象を全件 judge にかける（sequential＝API負荷を抑制・進捗を可視化）。
@@ -78,7 +257,8 @@ async function main() {
         continue;
       }
       try {
-        g.rejudge = await judgeAnswer(judge, rec.query, g.answer);
+        // 承認済み参照回答があれば reference 採点（生成回答を参照に照らして事実チェック＝ノイズ床↓）。
+        g.rejudge = await judgeAnswer(judge, rec.query, g.answer, refOf(rec.id, rec.query));
       } catch (e) {
         // 採点不能は安全側（factual/sufficient=false）で記録し集計から欠落させない。
         g.rejudge = { factual: false, overreach: false, sufficient: false, category: "refusal", reason: "judge採点不能" };

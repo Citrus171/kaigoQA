@@ -42,10 +42,25 @@ const baseSchema = z.object({
 });
 
 export const trainSchema = baseSchema.extend({ label: tier, answerSource });
+// 回答のsign-off状態（routingの reviewStatus=振り分けラベルの承認とは別軸）。
+//   approved の回答だけを reference 採点の基準に使う（未承認の下書きでノイズ床を汚さない）。
+const answerReview = z.enum(["pending", "approved", "rejected"]);
+
 export const goldSchema = baseSchema.extend({
   expected: tier,
   answerSource,
   note: z.string().optional(),
+  // 実務者の正解回答（reference採点の土台＝judgeノイズ床を下げる、MLOps投資C-2）。
+  //   下書きは一次情報ベースで Claude が起こし、実務者が確認して answerReview を approved にする。
+  //   役割分離: answer=実務者レビュー用の可読な模範回答（人間向け）。
+  //            referencePoints=judge採点用の「正解要素」配列（機械向け）。
+  //   judge には referencePoints を渡し「各要点を満たすか／矛盾しないか」の事実チェックに限定する
+  //   （長文 answer をそのまま渡すと類似度判定に陥りノイズ床削減が薄れるため）。referencePoints が
+  //   無ければ answer を 1 要素として代替する。数値は制度改定で腐るので要点を数値非依存にし、
+  //   数値依存の確認は独立した 1 要点（「※最新の告示で要確認」）に隔離する。
+  answer: z.string().min(1).optional(),
+  answerReview: answerReview.optional(),
+  referencePoints: z.array(z.string().min(1)).optional(),
 });
 
 export type TrainExample = z.infer<typeof trainSchema>;
@@ -74,4 +89,17 @@ export function loadTrain(): TrainExample[] {
 
 export function loadGold(): GoldCase[] {
   return readJsonl("routing-gold.jsonl").map((o) => goldSchema.parse(o));
+}
+
+/**
+ * reference 採点に渡す「正解要点」を返す（承認ゲート + 素材選択を一元化）。
+ *   - answerReview!=="approved" → undefined（未承認は採点に混ぜない＝ノイズ床を汚さない）。
+ *   - referencePoints があればそれを、無ければ answer を 1 要素として返す。
+ *   - どちらも無ければ undefined（judge は従来の reference なし採点にフォールバック）。
+ */
+export function referencePointsOf(g: GoldCase): string[] | undefined {
+  if (g.answerReview !== "approved") return undefined;
+  if (g.referencePoints?.length) return g.referencePoints;
+  if (g.answer) return [g.answer];
+  return undefined;
 }

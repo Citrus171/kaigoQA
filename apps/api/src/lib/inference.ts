@@ -159,6 +159,9 @@ export class OpenRouterProvider implements InferProvider {
     // 既定は OpenRouter のモデルID。OpenAI直なら "gpt-4o"、Claudeなら "anthropic/claude-opus-4" 等。
     private readonly model = process.env.JUDGE_MODEL ?? "openai/gpt-4o",
     private readonly timeoutMs = Number(process.env.JUDGE_TIMEOUT_MS ?? 60000),
+    // 採点温度。既定0=決定論寄り（再現性重視）。flip率モードは判定の揺れを測るため非0が必須
+    // （rejudge が JUDGE_TEMPERATURE を設定する）。
+    readonly temperature = Number(process.env.JUDGE_TEMPERATURE ?? 0),
   ) {
     this.name = `judge:${this.model}`;
   }
@@ -177,8 +180,8 @@ export class OpenRouterProvider implements InferProvider {
         },
         body: JSON.stringify({
           model: this.model,
-          // 採点は決定論寄りにしたい（再現性のため temperature を下げる）。
-          temperature: 0,
+          // 既定は決定論寄り(0)。flip率モードは JUDGE_TEMPERATURE で非0に上げ判定の揺れを測る。
+          temperature: this.temperature,
           messages: [{ role: "user", content: prompt }],
         }),
         signal: AbortSignal.timeout(this.timeoutMs),

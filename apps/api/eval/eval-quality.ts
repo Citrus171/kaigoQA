@@ -19,7 +19,7 @@
 
 import { OllamaProvider, OpenCodeProvider } from "../src/lib/inference";
 import { detectRiskyAssertion } from "../src/lib/guardrail";
-import { loadGold, type GoldCase } from "./data/load";
+import { loadGold, referencePointsOf, type GoldCase } from "./data/load";
 import { judgeAnswer, type JudgeVerdict } from "./judge";
 
 interface QualityRow extends GoldCase {
@@ -39,7 +39,8 @@ async function main() {
 
   console.log("=== Layer2 品質eval（LLM-as-Judge）===");
   console.log(`被テスト=${edge.name} / judge=${judge.name}`);
-  console.log(`対象=edge質問 ${cases.length}件。edge生成→judge採点を実行中…\n`);
+  const refScored = cases.filter((g) => referencePointsOf(g)).length;
+  console.log(`対象=edge質問 ${cases.length}件（うち参照採点=${refScored}件 / 残りは参照なし採点）。edge生成→judge採点を実行中…\n`);
 
   // 1件の生成/採点失敗で全体を止めない（edge SLM は非JSONを返しうる=既知のライブ課題）。
   const rows: QualityRow[] = [];
@@ -55,8 +56,11 @@ async function main() {
       continue;
     }
     let verdict: JudgeVerdict;
+    // 承認済みの参照素材があれば reference 採点（ノイズ床↓）。未承認/無しは従来採点。
+    //   採点基準は referencePoints 優先、無ければ answer を 1 要素に代替。
+    const reference = referencePointsOf(g);
     try {
-      verdict = await judgeAnswer(judge, g.query, answer);
+      verdict = await judgeAnswer(judge, g.query, answer, reference);
     } catch {
       // judge 応答が不正＝採点不能。安全側に倒し factual/sufficient=false 扱いで記録。
       verdict = { factual: false, overreach: false, sufficient: false, category: "refusal", reason: "judge採点不能" };
