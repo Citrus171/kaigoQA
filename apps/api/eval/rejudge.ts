@@ -24,6 +24,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadEnv } from "../src/lib/load-env";
+loadEnv();
 import { OpenRouterProvider } from "../src/lib/inference";
 import { judgeAnswer, isGoodAnswer, type JudgeVerdict } from "./judge";
 import { loadGold, referencePointsOf, type Tier } from "./data/load";
