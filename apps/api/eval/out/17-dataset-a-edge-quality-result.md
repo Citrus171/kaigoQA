@@ -42,6 +42,35 @@ routed good率 = 15/61 = 24.6%。embedding 類似度は「gemma3 が実際に正
    ない以上、offload を増やすと品質が落ちる。閾値は edge 品質天井を超えられない。
 3. **真のレバーは edge モデル増強**。
 
+## 結果3: 失敗モード内訳（bad edge答案 104件）
+
+judge category 別:
+
+| カテゴリ | 件数 | 意味 |
+|---|---|---|
+| hallucination | 57 | 事実を捏造（最大要因）|
+| partial | 42 | 情報不足 |
+| refusal | 4 | 「施設にご確認ください」逃げ |
+| overreach | 1 | 過剰主張 |
+
+落ちた軸別（複合計上）: factual=False 90 / sufficient=False 104 / overreach 1。
+→ 本質的弱点は**ドメイン知識欠如によるハルシネーション**。granite8b 検証では「hallucination 57件が
+どれだけ減るか」を同一指標で直接比較する（baseline）。
+
+## 結果4: offload–品質トレードオフ（routing.score sweep）
+
+`score < t` を edge 維持として t を sweep し、各点の「edge維持率(offload)」と「維持内 good率(実品質)」を算出。
+
+| 品質バー | 最大 offload | 内訳 |
+|---|---|---|
+| ≥80% | 1.7%（2件）| good2/bad0 |
+| ≥50% | 5.0%（6件）| good3/bad3 |
+| 全件edge維持 | 13.3% | good16/bad104 |
+
+→ **FP を緩めても offload は伸びない**。routing score と edge品質の相関が弱く（routed=edge good率
+24.6% vs 全体13.3%）、「高確信edge」が実際に正答できるとは限らない。品質≥50%まで譲って offload 5%。
+**実用上 gemma3:4b の有効 offload はほぼゼロ**（13%天井より厳しい）。
+
 ## 但し書き
 
 gemma3:4b は代理値（prod edge = Workers AI 想定。`docs/e2e-gpu-runbook.md` 同前提）。
