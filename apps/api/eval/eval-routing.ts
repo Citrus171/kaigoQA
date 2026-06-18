@@ -254,7 +254,7 @@ async function main() {
     console.log(
       pass
         ? `  ✅ Recall 目標達成 (${pct(tunedM.recall)} ≥ ${pct(RECALL_TARGET)})`
-        : `  ⚠️ Recall 目標未達 (${pct(tunedM.recall)})。llama3.2:1b の埋め込み分離限界 → Step5(RAG)/モデル増強が必要`,
+        : `  ⚠️ Recall 目標未達 (${pct(tunedM.recall)})。${embed.name} の埋め込み分離限界 → Step5(RAG)/モデル増強が必要`,
     );
     process.exit(pass ? 0 : 1);
   }
