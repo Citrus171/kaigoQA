@@ -23,6 +23,7 @@
     "test:watch": "vitest",
     "build:model": "tsx scripts/build-routing-model.ts",
     "split:gold-a": "tsx scripts/split-gold-a.ts",
+    "review:gold-a": "tsx scripts/review-gold-a.ts",
     "eval:routing": "tsx eval/eval-routing.ts",
     "eval:calibration": "tsx eval/eval-calibration.ts",
     "eval:quality": "tsx eval/eval-quality.ts",
