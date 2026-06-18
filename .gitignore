@@ -32,6 +32,11 @@ docs/
 .idea/
 .vscode/
 
+# eval/out（分析md・手順書・Dataset A クエリ等の成果物）は追跡する
+#   = 上の汎用 `out/`（build outputs）除外の例外。
+!apps/api/eval/out/
+!apps/api/eval/out/**
+
 # E2E eval 実行成果物（非決定的・大きい。再生成可）
 apps/api/eval/data/e2e-*.jsonl
 
