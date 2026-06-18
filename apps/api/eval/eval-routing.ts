@@ -13,14 +13,13 @@
 import { classifyComplexity } from "../src/lib/classify";
 import { OllamaEmbedProvider } from "../src/lib/embed";
 import { buildCentroidClassifier, tuneThreshold } from "../src/lib/classify-embed";
-import { loadTrain, loadGold, type GoldCase, type Tier } from "./data/load";
+import { loadTrain, loadGoldFromEnv, EVAL_GOLD_FILE, type GoldCase, type Tier } from "./data/load";
 
-// 評価対象 gold は env で切替可能（既定=Dataset B = routing-gold.jsonl）。
-// Dataset A（本番分布）を独立評価: EVAL_GOLD_FILE=routing-gold-a.jsonl npm run eval:routing
-// ※ 分類器プロトタイプ/閾値チューニングは routing-train 固定（gold は held-out 評価のみ）。
-const GOLD_FILE = process.env.EVAL_GOLD_FILE ?? "routing-gold.jsonl";
+// 評価対象 gold は EVAL_GOLD_FILE で切替可能（既定=Dataset B = routing-gold.jsonl）。
+// Dataset A-dev で動作点決定: EVAL_GOLD_FILE=routing-gold-a-dev.jsonl npm run eval:routing
+// ※ 分類器プロトタイプは routing-train 固定（gold は held-out 評価のみ）。
 const routingTrain = loadTrain();
-const routingGold = loadGold(GOLD_FILE);
+const routingGold = loadGoldFromEnv();
 
 const COST_FN = 10;
 const COST_FP = 1;
@@ -174,7 +173,7 @@ async function main() {
   const total = routingGold.length;
   const cloudN = routingGold.filter((g) => g.expected === "cloud").length;
   console.log("=== ルーティング評価（held-out gold） ===");
-  console.log(`gold source: ${GOLD_FILE}`);
+  console.log(`gold source: ${EVAL_GOLD_FILE}`);
   console.log(
     `gold: ${total}件 (cloud=${cloudN} / edge=${total - cloudN}) ※ラベル暫定・要実務者レビュー`,
   );

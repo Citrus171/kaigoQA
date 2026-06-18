@@ -23,7 +23,7 @@ import { loadEnv } from "../src/lib/load-env";
 loadEnv();
 import { OllamaProvider, OpenCodeProvider } from "../src/lib/inference";
 import { getRoutingClassifier } from "../src/lib/routing";
-import { loadGold, type Tier } from "./data/load";
+import { loadGoldFromEnv, EVAL_GOLD_FILE, type Tier } from "./data/load";
 import { judgeAnswer, isGoodAnswer, type JudgeVerdict, type FailureCategory } from "./judge";
 import currentArtifact from "../models/routing/current.json";
 
@@ -94,7 +94,7 @@ async function main() {
   const classifier = await getRoutingClassifier();
   // E2E_LIMIT で件数を絞れる（疎通確認用）。未指定なら全件。
   const limit = Number(process.env.E2E_LIMIT ?? 0);
-  const gold = limit > 0 ? loadGold().slice(0, limit) : loadGold();
+  const gold = limit > 0 ? loadGoldFromEnv().slice(0, limit) : loadGoldFromEnv();
   // E2E_ONLY_CLOUD=1: edge生成(gemma3:4b)を省き、振り分け(bge-m3)+cloud生成+judgeのみ実行。
   //   GPU不在のCPU環境で always-cloud の絶対品質/latency を先取り確定するための代理モード。
   //   always-edge と routed(edge側) の品質は測れない＝GPUセッションで取得する。
@@ -102,7 +102,7 @@ async function main() {
 
   console.log("=== E2E評価（3ポリシー比較）===");
   console.log(`edge=${edge.name} / cloud=${cloud.name} / judge=${judgeName}（cloudと同一＝自己採点注意）`);
-  console.log(`gold=${gold.length}件${limit > 0 ? `（E2E_LIMIT=${limit}）` : ""}。`);
+  console.log(`gold source=${EVAL_GOLD_FILE} / gold=${gold.length}件${limit > 0 ? `（E2E_LIMIT=${limit}）` : ""}。`);
   if (onlyCloud) console.log("⚠ E2E_ONLY_CLOUD=1: edge生成をスキップ（always-cloud品質/latencyのみ確定。edge側はGPU測定待ち）。");
 
   // フェーズ1: 全件の振り分けを先に確定（bge-m3 を連続使用＝gemma3:4b との交互ロード回避）。

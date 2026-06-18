@@ -96,6 +96,12 @@ export function loadGold(file = "routing-gold.jsonl"): GoldCase[] {
   return readJsonl(file).map((o) => goldSchema.parse(o));
 }
 
+// 評価ハーネス共通の対象切替。EVAL_GOLD_FILE で gold を差し替える（既定=Dataset B）。
+//   例: EVAL_GOLD_FILE=routing-gold-a-dev.jsonl npm run eval:e2e
+// eval-routing / eval-e2e / rejudge が同じ env で A(-dev/-holdout) を指せるようにする。
+export const EVAL_GOLD_FILE = process.env.EVAL_GOLD_FILE ?? "routing-gold.jsonl";
+export const loadGoldFromEnv = (): GoldCase[] => loadGold(EVAL_GOLD_FILE);
+
 /**
  * reference 採点に渡す「正解要点」を返す（承認ゲート + 素材選択を一元化）。
  *   - answerReview!=="approved" → undefined（未承認は採点に混ぜない＝ノイズ床を汚さない）。

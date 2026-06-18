@@ -28,7 +28,7 @@ import { loadEnv } from "../src/lib/load-env";
 loadEnv();
 import { OpenRouterProvider } from "../src/lib/inference";
 import { judgeAnswer, isGoodAnswer, type JudgeVerdict } from "./judge";
-import { loadGold, referencePointsOf, type Tier } from "./data/load";
+import { loadGoldFromEnv, referencePointsOf, type Tier } from "./data/load";
 
 // gold を id→正規化query で引けるようにする（参照採点で承認済みの正解要点を渡すため）。
 // 入力 e2e JSONL の id は gold.id と同形（"gold-NN"）なので id 一致が基本。万一 id が
@@ -38,7 +38,7 @@ const normQuery = (s: string) => s.normalize("NFKC").trim().replace(/\s+/g, " ")
 function buildReferenceLookup() {
   const byId = new Map<string, string[]>();
   const byQuery = new Map<string, string[]>();
-  for (const g of loadGold()) {
+  for (const g of loadGoldFromEnv()) {
     const points = referencePointsOf(g);
     if (points) {
       byId.set(g.id, points);
