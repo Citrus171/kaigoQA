@@ -37,3 +37,6 @@ apps/api/eval/data/e2e-*.jsonl
 
 # E2E評価の生成成果物(回答本文/judge結果・再採点用)。Git管理外。
 eval-artifacts/
+
+# Kilo Code のプラン/作業ファイル（ローカル設計メモ・Git管理外）
+.kilo/
