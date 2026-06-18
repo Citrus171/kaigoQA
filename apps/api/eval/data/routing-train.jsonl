@@ -22,3 +22,33 @@
 {"id":"train-22","query":"高額介護サービス費の払い戻しはどう判定されますか","label":"cloud","category":"benefit-ratio","answerSource":"reasoning","provenance":"synthetic","reviewStatus":"pending","borderline":false}
 {"id":"train-23","query":"生活援助の回数制限の取り扱いを判断してほしい","label":"cloud","category":"case-judgment","answerSource":"reasoning","provenance":"synthetic","reviewStatus":"pending","borderline":false}
 {"id":"train-24","query":"夜間対応型訪問介護の利用要件を満たすか確認したい","label":"cloud","category":"case-judgment","answerSource":"reasoning","provenance":"synthetic","reviewStatus":"pending","borderline":false}
+{"id": "train-25", "query": "介護保険の保険料はどのように決まりますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-26", "query": "ケアマネジャーは具体的にどんな仕事をしますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-27", "query": "地域密着型サービスにはどんな種類がありますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-28", "query": "介護保険の利用者負担のしくみを教えてください", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-29", "query": "介護認定審査会とはどんな組織ですか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-30", "query": "福祉用具貸与ではどんな種類のものが借りられますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-31", "query": "特定施設入居者生活介護とはどのようなサービスですか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-32", "query": "介護予防サービスにはどんなものがありますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-33", "query": "居宅サービス計画書とは何ですか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-34", "query": "介護保険で受けられるサービスの種類を大まかに教えて", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-35", "query": "主治医意見書は認定のときにどんな役割を果たしますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-36", "query": "要支援と要介護では利用できるサービス範囲にどんな違いがありますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-37", "query": "居宅介護支援事業所とはどんな役割をしていますか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-38", "query": "通所リハビリテーションとはどんなサービスですか", "label": "edge", "category": "system-explain", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-39", "query": "要介護認定の申請は本人以外でもできますか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-40", "query": "認定調査の当日はどんな流れで進みますか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-41", "query": "ケアプランができるまでにどれくらい時間がかかりますか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-42", "query": "サービス利用票とは何ですか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-43", "query": "ケアプランのモニタリングはどのくらいの頻度で行われますか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-44", "query": "介護保険サービスの利用契約ではどんなことを確認すればいいですか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-45", "query": "重要事項説明書とはどんな書類で、何が書いてありますか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-46", "query": "区分変更を申請するにはどういう手続きが必要ですか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-47", "query": "負担割合証はいつ発行されて、どのように確認すればいいですか", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-48", "query": "初めて介護保険を使うときの大まかな手続きの流れを教えて", "label": "edge", "category": "procedure", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-49", "query": "居宅サービスと施設サービスはどのような点が大きく違いますか", "label": "edge", "category": "service-compare", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-50", "query": "介護予防サービスと介護サービスでは内容がどう違いますか", "label": "edge", "category": "service-compare", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-51", "query": "短期入所生活介護と短期入所療養介護はどのように違いますか", "label": "edge", "category": "service-compare", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-52", "query": "訪問系サービスと通所系サービスはどのような目的で使い分けますか", "label": "edge", "category": "service-compare", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-53", "query": "介護保険制度が「共同連帯の理念」に基づくとはどういう意味ですか", "label": "edge", "category": "general", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
+{"id": "train-54", "query": "ケアマネジャーにどんなことを相談すればいいですか", "label": "edge", "category": "general", "answerSource": "general", "provenance": "synthetic", "reviewStatus": "approved", "borderline": false}
