@@ -27,6 +27,12 @@ if (thresholdOverride !== undefined && thresholdOverride.trim() !== "") {
   model.threshold = Number(thresholdOverride);
 }
 
+/** Router Observability 用の成果物メタ（versions 記録に使う）。 */
+export const routerInfo = {
+  classifierVersion: model.version,
+  embedModel: model.embedModel,
+};
+
 /**
  * 成果物から段1ルータを得る。
  * embed 未指定時は成果物の embedModel で Ollama を構築（serving と成果物の埋め込み空間を一致させる）。

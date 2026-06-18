@@ -47,7 +47,39 @@ export const routingModelSchema = z.object({
 export type RoutingModel = z.infer<typeof routingModelSchema>;
 
 export interface RoutingClassifier {
-  classify(prompt: string): Promise<{ tier: Tier; score: number }>;
+  classify(prompt: string): Promise<{
+    tier: Tier;
+    score: number;
+    threshold: number; // 適用した閾値（観測用。score>threshold で cloud）
+    simCloud: number; // cosine(v, cloudセントロイド)。"なぜ"の根拠
+    simEdge: number; // cosine(v, edgeセントロイド)
+  }>;
+}
+
+/**
+ * 段1ルータの判定を「理由つき」で表す観測レコード（Router Observability MVP）。
+ * 分岐ロジックは変えず、ai.ts のハンドラがこれを組んで RoutingLogger に流す。
+ *   - 「なぜ」の本体は margin（=score-threshold）と simCloud/simEdge。
+ *   - rule 経路（埋め込み不通フォールバック）では score 系は null。
+ */
+export interface RoutingDecision {
+  tier: Tier;
+  stage1: {
+    method: "classifier" | "rule";
+    score: number | null;
+    threshold: number | null;
+    margin: number | null;
+    simCloud: number | null;
+    simEdge: number | null;
+  };
+  stage2?: {
+    edgeConfidence: number;
+    escalated: boolean; // 自信不足で cloud へ巻き戻し
+    guardrailEscalated: boolean; // ガードレール（危険断定）で cloud へ巻き戻し
+  };
+  served: Tier; // 実際に返した先（stage2 で反転しうる）
+  versions: { embedModel: string; classifierVersion: string; genModel: string };
+  latencyMs: { embed: number; gen: number; total: number };
 }
 
 /** 未知 JSON を検証して RoutingModel にする（ロード時の形・次元整合チェック）。 */
@@ -81,8 +113,16 @@ export function classifierFromModel(
           `埋め込み次元不一致: ${v.length} != ${model.dim}（成果物=${model.embedModel} / provider=${embed.name}）`,
         );
       }
-      const score = cosine(v, cloud) - cosine(v, edge);
-      return { tier: score > model.threshold ? "cloud" : "edge", score };
+      const simCloud = cosine(v, cloud);
+      const simEdge = cosine(v, edge);
+      const score = simCloud - simEdge;
+      return {
+        tier: score > model.threshold ? "cloud" : "edge",
+        score,
+        threshold: model.threshold,
+        simCloud,
+        simEdge,
+      };
     },
   };
 }

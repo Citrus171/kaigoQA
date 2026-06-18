@@ -8,6 +8,10 @@ import { authRoutes } from "@/routes/auth";
 import { todoRoutes } from "@/routes/todos";
 import { adminRoutes } from "@/routes/admin";
 import { aiRoutes } from "@/routes/ai";
+import {
+  noopRoutingLogger,
+  type RoutingLogger,
+} from "@/lib/routing-observability";
 
 /**
  * db と jwtSecret の解決方法を注入してアプリを組み立てる。
@@ -18,6 +22,8 @@ import { aiRoutes } from "@/routes/ai";
 export type Resolvers = {
   getDb: (c: Context<AppEnv>) => DB;
   getJwtSecret: (c: Context<AppEnv>) => string;
+  // Router Observability ロガー（任意。未指定=no-op＝既存呼び出し/Workers/テストは無改修）。
+  getRoutingLogger?: (c: Context<AppEnv>) => RoutingLogger;
 };
 
 export function createApp(resolvers: Resolvers) {
@@ -27,6 +33,7 @@ export function createApp(resolvers: Resolvers) {
     .use("*", async (c, next) => {
       c.set("db", resolvers.getDb(c));
       c.set("jwtSecret", resolvers.getJwtSecret(c));
+      c.set("routingLogger", resolvers.getRoutingLogger?.(c) ?? noopRoutingLogger);
       await next();
     })
     // readiness/liveness。DB 疎通まで確認。
