@@ -87,8 +87,11 @@ export function loadTrain(): TrainExample[] {
   return readJsonl("routing-train.jsonl").map((o) => trainSchema.parse(o));
 }
 
-export function loadGold(): GoldCase[] {
-  return readJsonl("routing-gold.jsonl").map((o) => goldSchema.parse(o));
+// 既定は Dataset B（edge stress / routing-gold.jsonl）。本番分布の Dataset A など
+// 別 split を独立評価したい場合は file を渡す（例: "routing-gold-a.jsonl"）。
+// 既存呼び出しは引数なし＝従来どおりで後方互換。
+export function loadGold(file = "routing-gold.jsonl"): GoldCase[] {
+  return readJsonl(file).map((o) => goldSchema.parse(o));
 }
 
 /**
