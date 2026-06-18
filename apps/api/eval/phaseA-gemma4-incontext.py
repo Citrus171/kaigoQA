@@ -50,14 +50,20 @@ for tid in target_ids:
     if ref: targets.append({"id": tid, "query": g["query"], "refs": ref})
 print(f"対象: {len(targets)}件（Phase A gemma3 と同一集合）/ model={MODEL}")
 
+# GEMMA4_THINKING=off で thinking 無効化（SLO-2 ≤2秒 を満たす edge 構成の品質測定）
+THINKING = os.environ.get("GEMMA4_THINKING", "on").lower()
+
 def gen(query, refs):
     ref_text = "\n".join(f"- {p}" for p in refs)
     sys_p = EDGE_SYSTEM + f"\n\n回答の参考情報（介護保険の事実）:\n{ref_text}"
+    payload = {
+        "messages": [{"role": "system", "content": sys_p}, {"role": "user", "content": query}],
+        "max_tokens": 2048 if THINKING != "off" else 512,
+    }
+    if THINKING == "off":
+        payload["chat_template_kwargs"] = {"enable_thinking": False}
     try:
-        r = requests.post(CF_API, headers={"Authorization": f"Bearer {TOK}"}, json={
-            "messages": [{"role": "system", "content": sys_p}, {"role": "user", "content": query}],
-            "max_tokens": 2048,
-        }, timeout=120)
+        r = requests.post(CF_API, headers={"Authorization": f"Bearer {TOK}"}, json=payload, timeout=120)
         r.raise_for_status()
         ch = (r.json().get("result", {}) or {}).get("choices") or []
         return (ch[0].get("message", {}).get("content", "") if ch else "").strip()
@@ -107,5 +113,7 @@ out = {"n": n, "new_good": new_good, "model": MODEL,
        "items": [{"id": t["id"], "query": t["query"], "new_good": isgood(t.get("new_verdict")),
                   "new_category": (t.get("new_verdict") or {}).get("category"),
                   "answer": t.get("new_answer", "")[:200]} for t in targets]}
-json.dump(out, open("apps/api/eval/data/phaseA-gemma4-incontext-results.json", "w"), ensure_ascii=False, indent=2)
-print("Save: apps/api/eval/data/phaseA-gemma4-incontext-results.json")
+suffix = "" if THINKING != "off" else "-thinkoff"
+outpath = f"apps/api/eval/data/phaseA-gemma4-incontext-results{suffix}.json"
+json.dump(out, open(outpath, "w"), ensure_ascii=False, indent=2)
+print("Save:", outpath)
