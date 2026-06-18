@@ -58,11 +58,19 @@ def gen(query):
                 {"role": "system", "content": EDGE_SYSTEM},
                 {"role": "user", "content": query},
             ],
+            "max_tokens": 2048,  # thinking mode が reasoning に多くのトークンを使うため content 用に余裕を持たせる
         }, timeout=120)
         r.raise_for_status()
         body = r.json()
-        ans = (body.get("result", {}) or {}).get("response", "") or ""
-        return ans.strip(), int((time.time() - t0) * 1000), False
+        result = body.get("result", {}) or {}
+        # Gemma 4 は OpenAI形式 choices[].message.content。旧形式 response もフォールバック。
+        ans = ""
+        choices = result.get("choices")
+        if choices:
+            ans = (choices[0].get("message", {}) or {}).get("content", "") or ""
+        if not ans:
+            ans = result.get("response", "") or ""
+        return ans.strip(), int((time.time() - t0) * 1000), bool(not ans)
     except Exception as ex:
         print(f"    gen FAIL: {ex}")
         return "", int((time.time() - t0) * 1000), True

@@ -1,0 +1,623 @@
+{
+  "n": 77,
+  "old_good": 0,
+  "new_good": 21,
+  "items": [
+    {
+      "id": "gold-A-015",
+      "query": "特定疾病のうち末期がんの方はどのような条件で要介護認定を受けられますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "迅速認定に触れていない"
+    },
+    {
+      "id": "gold-A-016",
+      "query": "保険料の減免制度はどんなときに利用できますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "生活保護受給者の免除が欠落"
+    },
+    {
+      "id": "gold-A-017",
+      "query": "介護保険のサービスと障害福祉サービスのどちらを優先して使うべきですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の詳細が不足している"
+    },
+    {
+      "id": "gold-A-018",
+      "query": "住宅改修費の20万円の範囲でできる工事とできない工事を具体的に教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点を正確にカバーしている"
+    },
+    {
+      "id": "gold-A-019",
+      "query": "混合介護とは何ですか、保険のサービスと保険外のサービスを一緒に使うときの注意点を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "抱き合わせ禁止の誤りがある"
+    },
+    {
+      "id": "gold-A-020",
+      "query": "区分支給限度基準額はどのように計算するのですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の詳細が不足している"
+    },
+    {
+      "id": "gold-A-021",
+      "query": "第2号被保険者（40〜64歳）が医療保険に入っていない場合は介護保険はどうなりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "医療保険未加入の想定が誤り"
+    },
+    {
+      "id": "gold-A-022",
+      "query": "要介護認定の一次判定のコンピュータ判定はどのような仕組みですか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点を正確にカバーしている"
+    },
+    {
+      "id": "gold-A-023",
+      "query": "介護保険法第1条（目的規定）に定められている理念を説明してください",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の一部のみ説明"
+    },
+    {
+      "id": "gold-A-024",
+      "query": "住所地特例の対象となる施設と、この制度が必要な理由を教えてください",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "対象施設の具体例が不足"
+    },
+    {
+      "id": "gold-A-025",
+      "query": "介護保険の給付と生活保護の介護扶助の関係はどう整理されていますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "介護保険料の減免に触れていない"
+    },
+    {
+      "id": "gold-A-034",
+      "query": "標準給付と地域支援事業の内容の違いを教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "地域支援事業の類型説明不足"
+    },
+    {
+      "id": "gold-A-035",
+      "query": "介護保険の対象となる指定居宅サービス事業者の指定基準を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "基準の詳細説明が不足している"
+    },
+    {
+      "id": "gold-A-036",
+      "query": "介護保険財政が厳しいと言われる理由と今後の見通しを教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点を網羅し事実誤りなし"
+    },
+    {
+      "id": "gold-A-043",
+      "query": "認定調査ではどんなことを聞かれますか、事前に準備しておくことはありますか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正解要点に沿った回答"
+    },
+    {
+      "id": "gold-A-044",
+      "query": "認定調査に立ち会う家族がいない場合でも調査は受けられますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "家族不在時の対応が不十分"
+    },
+    {
+      "id": "gold-A-045",
+      "query": "認定結果に納得できない場合、どこにどのように不服を申し立てればいいですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "区分変更申請と理由確認が不足"
+    },
+    {
+      "id": "gold-A-046",
+      "query": "他市町村に引っ越すときの介護保険の手続きを順を追って教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "転出前手続きが欠落"
+    },
+    {
+      "id": "gold-A-047",
+      "query": "本人が入院中で申請に行けないときの代理申請の方法を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "市区町村相談が欠如"
+    },
+    {
+      "id": "gold-A-048",
+      "query": "要介護認定で非該当になった場合、次に何をすればいいですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "再申請と審査請求が未記載"
+    },
+    {
+      "id": "gold-A-049",
+      "query": "負担割合証の記載内容が誤っているかもしれない場合、どこに相談すればいいですか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正解要点を満たしている"
+    },
+    {
+      "id": "gold-A-050",
+      "query": "介護保険被保険者証を紛失した場合の再発行手続きを教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "全要点を正確に含む"
+    },
+    {
+      "id": "gold-A-051",
+      "query": "既存のケアプランに新しいサービスを追加したいときの手続きを教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "手続きの詳細が不足している"
+    },
+    {
+      "id": "gold-A-052",
+      "query": "サービス利用計画ができてから実際にサービスを利用開始するまでの流れを教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の多くが欠けている"
+    },
+    {
+      "id": "gold-A-053",
+      "query": "介護保険の認定有効期間が切れそうなのですが、まだ更新通知が来ていません。どうすればいいですか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正解要点を満たしている"
+    },
+    {
+      "id": "gold-A-054",
+      "query": "サービス事業者を途中で変更したい場合の手続きを教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "ケアプラン作成が未言及"
+    },
+    {
+      "id": "gold-A-055",
+      "query": "介護保険の認定調査で、本人がうまく状態を説明できない場合の対応を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "主治医意見書と市区町村配慮が欠如"
+    },
+    {
+      "id": "gold-A-056",
+      "query": "要介護認定の申請をしてから結果が出るまでに今のサービスは使えますか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正確で要点を満たしている"
+    },
+    {
+      "id": "gold-A-057",
+      "query": "訪問看護ステーションにサービスを依頼するにはどういう手続きが必要ですか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点を全て含んでいる"
+    },
+    {
+      "id": "gold-A-058",
+      "query": "要介護認定の申請後に引っ越した場合、手続きはどうなりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体的手続きが不足している"
+    },
+    {
+      "id": "gold-A-059",
+      "query": "介護保険の認定有効期間が終わったことに気づかずサービスを利用してしまった場合の対応を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "特例の可能性に言及なし"
+    },
+    {
+      "id": "gold-A-061",
+      "query": "要介護3で訪問介護（身体介護）と通所介護を週2回ずつ組み合わせたときの限度額を計算してほしい",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点に沿った正確な回答"
+    },
+    {
+      "id": "gold-A-062",
+      "query": "年金収入が250万円で単身世帯の場合、介護保険の自己負担割合は1割ですか2割ですか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正確な判定に必要な情報を提示"
+    },
+    {
+      "id": "gold-A-063",
+      "query": "介護職員等処遇改善加算の加算Iと加算IIでは具体的な要件にどんな差がありますか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要件の差を正確に説明している"
+    },
+    {
+      "id": "gold-A-064",
+      "query": "個別機能訓練加算IIを算定するために必要な人員配置と計画作成の要件を教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "partial",
+      "new_reason": "訪問評価の要件が欠如"
+    },
+    {
+      "id": "gold-A-065",
+      "query": "高額介護サービス費の支給申請手続きの具体的な流れと必要書類を教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正確で詳細な情報を提供"
+    },
+    {
+      "id": "gold-A-066",
+      "query": "福祉用具貸与で特殊寝台（介護ベッド）を借りた場合の1か月あたりの自己負担額を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "自己負担額の具体例が不足"
+    },
+    {
+      "id": "gold-A-067",
+      "query": "償還払いを利用する場合の手続きと、支給までにかかる期間を教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正確かつ要点を網羅している"
+    },
+    {
+      "id": "gold-A-068",
+      "query": "介護保険の給付制限（滞納時の措置）について、どの程度滞納するとどういう制限がかかりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "1年以上滞納の措置が欠落"
+    },
+    {
+      "id": "gold-A-069",
+      "query": "区分支給限度基準額を超過しそうな場合、どんな調整をすればいいですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "調整方法の具体例が不足している"
+    },
+    {
+      "id": "gold-A-070",
+      "query": "福祉用具購入費（入浴補助用具など）の支給を受けるための手続きと上限額を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "事前確認と再支給条件が不足"
+    },
+    {
+      "id": "gold-A-071",
+      "query": "通所介護の栄養改善加算を算定するための具体的な要件を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要件の一部が欠けている"
+    },
+    {
+      "id": "gold-A-072",
+      "query": "訪問介護のいわゆる2時間ルールと生活援助の回数制限について具体的に教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の一部のみ回答"
+    },
+    {
+      "id": "gold-A-073",
+      "query": "通所リハビリテーションのリハビリテーションマネジメント加算の算定要件を満たしているか確認したい",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要件の一部のみ記載"
+    },
+    {
+      "id": "gold-A-074",
+      "query": "福祉用具貸与の種目ごとの貸与価格の上限を知りたい",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体的な情報が不足している"
+    },
+    {
+      "id": "gold-A-075",
+      "query": "ケアプランに位置付けられていないサービスを受けた場合、費用はどうなりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "緊急時例外に触れていない"
+    },
+    {
+      "id": "gold-A-076",
+      "query": "訪問介護と通所リハビリを併用した場合、限度額の範囲内でそれぞれ何回ずつ利用できますか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点を網羅し具体的な指示あり"
+    },
+    {
+      "id": "gold-A-077",
+      "query": "訪問入浴介護の利用料金はどのように計算されますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "看護職員と介護職員の記載なし"
+    },
+    {
+      "id": "gold-A-078",
+      "query": "介護保険のサービスを利用した月の途中で要介護度が変わった場合、限度額はどう扱われますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の一部のみをカバー"
+    },
+    {
+      "id": "gold-A-079",
+      "query": "老健（介護老人保健施設）の月額費用の目安を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "補足給付や部屋類型の詳細不足"
+    },
+    {
+      "id": "gold-A-080",
+      "query": "短期入所生活介護（ショートステイ）を1週間利用した場合の自己負担額を計算して",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体的な計算例が不足している"
+    },
+    {
+      "id": "gold-A-081",
+      "query": "訪問介護の特定事業所加算の区分ごとの要件と加算率の違いを教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要件詳細が不足している"
+    },
+    {
+      "id": "gold-A-082",
+      "query": "介護保険の高額医療合算制度とはどのようなものですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "制度の詳細説明が不足している"
+    },
+    {
+      "id": "gold-A-083",
+      "query": "居宅療養管理指導の利用料金の仕組みを教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点に対する具体性不足"
+    },
+    {
+      "id": "gold-A-084",
+      "query": "特定施設入居者生活介護（介護付き有料老人ホーム等）の介護報酬のしくみを教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の詳細説明が不足している"
+    },
+    {
+      "id": "gold-A-093",
+      "query": "特養と老健と介護医療院の費用を比較してください",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "詳細な要点に触れていない"
+    },
+    {
+      "id": "gold-A-094",
+      "query": "近所で空きのあるグループホームを探しています",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の一部のみをカバー"
+    },
+    {
+      "id": "gold-A-095",
+      "query": "在宅で24時間の介護が必要な場合、どんなサービスの組み合わせが考えられますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "サービス組み合わせの具体性不足"
+    },
+    {
+      "id": "gold-A-096",
+      "query": "ショートステイを利用している間に家で受けている訪問介護はどうなりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の一部のみをカバー"
+    },
+    {
+      "id": "gold-A-100",
+      "query": "軽費老人ホーム（ケアハウス）の費用と入居条件を具体的に教えてください",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "入居条件の詳細が不足"
+    },
+    {
+      "id": "gold-A-101",
+      "query": "認知症の高齢者に適した施設としてグループホームと有料老人ホーム、どちらがよいか迷っています",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点に沿った回答で誤りなし"
+    },
+    {
+      "id": "gold-A-104",
+      "query": "介護予防・日常生活支援総合事業のサービスは介護保険給付と同じ扱いですか",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正確に要点を説明している"
+    },
+    {
+      "id": "gold-A-105",
+      "query": "介護保険と医療保険の負担区分の線引きが難しいケースについて具体例で教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体例が正解要点に沿っていない"
+    },
+    {
+      "id": "gold-A-106",
+      "query": "ケアプランの目標が達成できていない場合、どんなタイミングで見直すべきですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "定期モニタリングの言及が不足"
+    },
+    {
+      "id": "gold-A-107",
+      "query": "本人がサービス利用を拒否していますが、家族としては必要な状態だと思います。どう対応すればいいですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体的な対応策が不足している"
+    },
+    {
+      "id": "gold-A-108",
+      "query": "要介護認定の有効期間内に海外転出する場合、認定はどうなりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "短期渡航時の情報が不足"
+    },
+    {
+      "id": "gold-A-109",
+      "query": "災害が起きたときの介護保険の特例措置について教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "特例措置の具体例が不足"
+    },
+    {
+      "id": "gold-A-110",
+      "query": "家族の介護負担が限界です。緊急でショートステイを利用できますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の一部のみをカバー"
+    },
+    {
+      "id": "gold-A-111",
+      "query": "認知症の進行でこれまで通っていたデイサービスでの受け入れが難しくなってきました。どうすればいいですか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体的な選択肢が不足している"
+    },
+    {
+      "id": "gold-A-112",
+      "query": "ケアプラン通りにサービスが提供されていないと感じます。どうすれば改善されますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "改善策が不十分"
+    },
+    {
+      "id": "gold-A-113",
+      "query": "一人暮らしの高齢者が地域で孤立しないように利用できる制度やサービスを教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点を網羅し具体的に回答"
+    },
+    {
+      "id": "gold-A-114",
+      "query": "老老介護で共倒れになりそうです。どんな支援が受けられますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "refusal",
+      "new_reason": "具体的な支援策が示されていない"
+    },
+    {
+      "id": "gold-A-116",
+      "query": "介護保険施設での看取りと医療機関での看取り、どちらを選ぶべきか迷っています",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "正解要点に沿った回答"
+    },
+    {
+      "id": "gold-A-117",
+      "query": "運転免許を返納した高齢者の外出支援に使えるサービスはありますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "要点の一部のみをカバー"
+    },
+    {
+      "id": "gold-A-118",
+      "query": "介護保険の対象外となる「日常生活の援助」と対象となる「生活援助」の違いはどのように判断されますか",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体例が不足している"
+    },
+    {
+      "id": "gold-A-119",
+      "query": "訪問介護と障害福祉サービスの居宅介護、どちらを利用すべきか判断できません",
+      "old_good": false,
+      "new_good": false,
+      "new_category": "partial",
+      "new_reason": "具体的な判断基準が不足"
+    },
+    {
+      "id": "gold-A-120",
+      "query": "本人は自宅にいたがっているが、介護者の健康状態が悪化して在宅継続が難しくなってきた場合の選択肢を教えて",
+      "old_good": false,
+      "new_good": true,
+      "new_category": "ok",
+      "new_reason": "要点を網羅し具体的に回答"
+    }
+  ]
+}
