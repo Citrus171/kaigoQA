@@ -42,6 +42,17 @@ export class OllamaEmbedProvider implements EmbedProvider {
   }
 
   async embed(texts: string[]): Promise<number[][]> {
+    const BATCH = 40;
+    if (texts.length <= BATCH) return this._embed(texts);
+    const results: number[][] = [];
+    for (let i = 0; i < texts.length; i += BATCH) {
+      const batch = texts.slice(i, i + BATCH);
+      results.push(...(await this._embed(batch)));
+    }
+    return results;
+  }
+
+  private async _embed(texts: string[]): Promise<number[][]> {
     let res: Response;
     try {
       res = await fetch(`${this.url}/api/embed`, {
