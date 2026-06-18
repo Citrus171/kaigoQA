@@ -25,15 +25,20 @@ curl -s http://localhost:11434/api/tags | grep -o '"name":"[^"]*"'   # 両モデ
 ```
 
 ### 2. 先行E2E生成（全120件・承認前でOK）
+**推奨: `E2E_ONLY_EDGE=1`（cloud生成とjudgeをスキップ＝外部API非依存）。**
+2026-06-18 の実走で cloud API（OpenRouter）が 12→60s/件と劣化し GPU をほぼアイドルで抱えた教訓。
+GPUセッションは edge答案(gemma3:4b)＋振り分け(bge-m3)だけ回し、cloud答案と採点は後段で別途。
 ```bash
 cd apps/api
-EVAL_GOLD_FILE=routing-gold-a.jsonl \
+EVAL_GOLD_FILE=routing-gold-a.jsonl E2E_ONLY_EDGE=1 \
 OLLAMA_URL=http://localhost:11434 OLLAMA_GEN_MODEL=gemma3:4b OLLAMA_EMBED_MODEL=bge-m3 \
   npm run eval:e2e -w @hybrid/api
-# ヘッダに `gold source=routing-gold-a.jsonl` が出れば対象A。
-# 出力: apps/api/eval/data/e2e-ollama-gemma3-4b*.jsonl（edge+cloud答案/latency入り）
+# 出力: apps/api/eval/data/e2e-ollama-gemma3-4b-edgeonly.jsonl（edge答案/latency/振り分け）
+# 10件ごとに逐次フラッシュ＝中断しても途中まで回収可能。
 ```
 > 疎通だけ先に見るなら `E2E_LIMIT=3` を足す。
+> cloud側も同セッションで取るなら `E2E_ONLY_EDGE` を外す（ただしAPI律速で長時間化に注意）。
+> always-cloud だけ別途取るなら `E2E_ONLY_CLOUD=1`（GPU不要・API健全時に手元で）。
 
 ### 3. 回収（md5照合）
 ```bash

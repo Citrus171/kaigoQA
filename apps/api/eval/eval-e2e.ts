@@ -99,11 +99,18 @@ async function main() {
   //   GPU不在のCPU環境で always-cloud の絶対品質/latency を先取り確定するための代理モード。
   //   always-edge と routed(edge側) の品質は測れない＝GPUセッションで取得する。
   const onlyCloud = process.env.E2E_ONLY_CLOUD === "1";
+  // E2E_ONLY_EDGE=1: cloud生成と judge を省き、edge生成(GPU)＋振り分けのみ＝外部API非依存。
+  //   GPUセッションで重い cloud API を待たずに edge 答案を確保し、採点は後段 rejudge（独立judge）へ。
+  const onlyEdge = process.env.E2E_ONLY_EDGE === "1";
+  if (onlyCloud && onlyEdge) {
+    throw new Error("E2E_ONLY_CLOUD と E2E_ONLY_EDGE は併用不可（生成は片側ずつ）");
+  }
 
   console.log("=== E2E評価（3ポリシー比較）===");
   console.log(`edge=${edge.name} / cloud=${cloud.name} / judge=${judgeName}（cloudと同一＝自己採点注意）`);
   console.log(`gold source=${EVAL_GOLD_FILE} / gold=${gold.length}件${limit > 0 ? `（E2E_LIMIT=${limit}）` : ""}。`);
   if (onlyCloud) console.log("⚠ E2E_ONLY_CLOUD=1: edge生成をスキップ（always-cloud品質/latencyのみ確定。edge側はGPU測定待ち）。");
+  if (onlyEdge) console.log("⚠ E2E_ONLY_EDGE=1: cloud生成とjudgeをスキップ（edge答案+振り分け+latencyのみ＝API非依存。採点は後段 rejudge）。");
 
   // フェーズ1: 全件の振り分けを先に確定（bge-m3 を連続使用＝gemma3:4b との交互ロード回避）。
   process.stdout.write("  [1/2] 振り分け(bge-m3)…");
@@ -114,17 +121,30 @@ async function main() {
   // フェーズ2: edge/cloud 生成 + judge 採点（bge-m3 はもう触らない）。
   console.log("  [2/2] 生成+採点:");
   const records: CaseRecord[] = [];
+  // 出力パスとフラッシュを先に用意（長尺を逐次書き出し＝中断しても回収可能）。
+  const slug = (
+    onlyCloud ? `${cloud.name}-cloudonly` : onlyEdge ? `${edge.name}-edgeonly` : edge.name
+  ).replace(/[^a-z0-9]+/gi, "-");
+  const outPath = join(dirname(fileURLToPath(import.meta.url)), "data", `e2e-${slug}.jsonl`);
+  mkdirSync(dirname(outPath), { recursive: true });
+  const flush = () =>
+    writeFileSync(outPath, records.map((r) => JSON.stringify(r)).join("\n") + "\n");
   for (let i = 0; i < gold.length; i++) {
     const g = gold[i]!;
     const { tier, score } = routings[i]!;
     const e = onlyCloud
       ? { answer: "", latencyMs: 0, genFailed: false, skipped: true }
       : await timed(async () => (await edge.infer(g.query)).text);
-    const c = await timed(async () => (await cloud.infer(g.query)).text);
-    const [ev, cv] = await Promise.all([
-      e.skipped ? Promise.resolve(null) : judgeOrNull(cloud, g.query, e.answer, e.genFailed),
-      judgeOrNull(cloud, g.query, c.answer, c.genFailed),
-    ]);
+    const c = onlyEdge
+      ? { answer: "", latencyMs: 0, genFailed: false, skipped: true }
+      : await timed(async () => (await cloud.infer(g.query)).text);
+    // onlyEdge は採点を後段 rejudge に回す＝ここでは judge API を一切叩かない。
+    const [ev, cv] = onlyEdge
+      ? [null, null]
+      : await Promise.all([
+          e.skipped ? Promise.resolve(null) : judgeOrNull(cloud, g.query, e.answer, e.genFailed),
+          c.skipped ? Promise.resolve(null) : judgeOrNull(cloud, g.query, c.answer, c.genFailed),
+        ]);
     records.push({
       id: g.id,
       query: g.query,
@@ -137,6 +157,7 @@ async function main() {
       cloud: { ...c, verdict: cv, model: cloud.name },
     });
     console.log(`    ${i + 1}/${gold.length} [${g.expected}→${tier}] edge:${e.latencyMs}ms cloud:${c.latencyMs}ms`);
+    if ((i + 1) % 10 === 0) flush(); // 逐次フラッシュ（中断時の回収用）
   }
 
   // --- ポリシー別の集計 ---
@@ -170,12 +191,14 @@ async function main() {
   for (const p of policies) {
     const a = aggs.get(p)!;
     if (a.n === 0) {
-      console.log(`  ${p.padEnd(13)} | ${"（GPU測定待ち）".padStart(11)} | edge生成スキップ中`);
+      console.log(`  ${p.padEnd(13)} | ${"（測定待ち）".padStart(11)} | 生成スキップ中`);
       continue;
     }
     const miss = p === "routed" ? String(a.routingMiss) : "—";
+    // onlyEdge は judge 未実行＝good率は意味を持たない（latency は実測なので出す）。
+    const qualityCell = onlyEdge ? "（judge未実行）" : pct(a.good, a.n);
     console.log(
-      `  ${p.padEnd(13)} | ${pct(a.good, a.n).padStart(13)} | ${String(pctl(a.lat, 50)).padStart(5)}ms | ${String(pctl(a.lat, 95)).padStart(5)}ms | ${String(a.cloudCalls).padStart(7)}/${a.n} | ${miss}`,
+      `  ${p.padEnd(13)} | ${qualityCell.padStart(13)} | ${String(pctl(a.lat, 50)).padStart(5)}ms | ${String(pctl(a.lat, 95)).padStart(5)}ms | ${String(a.cloudCalls).padStart(7)}/${a.n} | ${miss}`,
     );
   }
 
@@ -183,6 +206,11 @@ async function main() {
     console.log(
       `\n  ★Quality loss は edge未測定のため算出不可（routedはcloud側${routedCloud}件のみ採点）。` +
         `\n   → always-cloud の絶対品質/latencyを確定。edge側はGPUセッションで取得し本指標を完成させる。`,
+    );
+  } else if (onlyEdge) {
+    console.log(
+      `\n  ★Quality/loss は judge未実行のため算出不可（E2E_ONLY_EDGE）。` +
+        `\n   → edge答案+振り分け+latencyを確定。採点は後段 rejudge（独立judge+参照）で完成させる。`,
     );
   } else {
     const q = (p: Policy) => aggs.get(p)!.good / aggs.get(p)!.n;
@@ -195,28 +223,29 @@ async function main() {
     );
   }
 
-  // --- failure taxonomy（routed の失敗内訳）---
-  const routedCats = new Map<FailureCategory | "routing-miss", number>();
-  for (const rec of records) {
-    if (rec.routing.predictedTier !== rec.expected) {
-      routedCats.set("routing-miss", (routedCats.get("routing-miss") ?? 0) + 1);
+  // --- failure taxonomy（routed の失敗内訳）。onlyEdge は judge 未実行なので出さない。---
+  if (!onlyEdge) {
+    const routedCats = new Map<FailureCategory | "routing-miss", number>();
+    for (const rec of records) {
+      if (rec.routing.predictedTier !== rec.expected) {
+        routedCats.set("routing-miss", (routedCats.get("routing-miss") ?? 0) + 1);
+      }
+      const gen = genOf(rec, "routed");
+      if (gen.skipped) continue; // 未測定（onlyCloud）の件は failure として数えない
+      const cat = gen.verdict?.category ?? "refusal";
+      if (cat !== "ok") routedCats.set(cat, (routedCats.get(cat) ?? 0) + 1);
     }
-    const gen = genOf(rec, "routed");
-    if (gen.skipped) continue; // edge未測定（onlyCloud）の件は failure として数えない
-    const cat = gen.verdict?.category ?? "refusal";
-    if (cat !== "ok") routedCats.set(cat, (routedCats.get(cat) ?? 0) + 1);
-  }
-  console.log("\n  routed failure taxonomy:");
-  for (const [cat, n] of [...routedCats.entries()].sort((a, b) => b[1] - a[1])) {
-    console.log(`    ${String(cat).padEnd(13)} ${n}`);
+    console.log("\n  routed failure taxonomy:");
+    for (const [cat, n] of [...routedCats.entries()].sort((a, b) => b[1] - a[1])) {
+      console.log(`    ${String(cat).padEnd(13)} ${n}`);
+    }
   }
 
-  // --- 永続化（後日 別judge/reference で再採点できるよう全記録を保存）---
-  const slug = (onlyCloud ? `${cloud.name}-cloudonly` : edge.name).replace(/[^a-z0-9]+/gi, "-");
-  const outPath = join(dirname(fileURLToPath(import.meta.url)), "data", `e2e-${slug}.jsonl`);
-  mkdirSync(dirname(outPath), { recursive: true }); // data/ 不在でも全計算後の保存を失わない
-  writeFileSync(outPath, records.map((r) => JSON.stringify(r)).join("\n") + "\n");
-  console.log(`\n保存: ${outPath}（${records.length}件・回答本文/latency/judge結果を含む）`);
+  // --- 永続化（逐次フラッシュ済。ここで最終書き出し。後日 rejudge で再採点可）---
+  flush();
+  console.log(
+    `\n保存: ${outPath}（${records.length}件・回答本文/latency${onlyEdge ? "（judge未実行＝後段rejudge）" : "/judge結果"}を含む）`,
+  );
 }
 
 main().catch((e) => {
