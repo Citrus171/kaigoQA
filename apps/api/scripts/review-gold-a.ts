@@ -72,10 +72,14 @@ const persist = () =>
 // レビュー対象（旗）の抽出。
 function worklist(): Row[] {
   if (refsMode) {
-    // cloud かつ未承認。★5（過剰要点疑い）を先頭に。
+    // 未承認かつ referencePoints を持つ項目（tier 問わず）。cloud は空でも参照起草対象。
+    // ★5（過剰要点疑い）を先頭に。
     return rows
-      .filter((r) => r.expected === "cloud" && r.answerReview !== "approved")
-      .filter((r) => showAll || true) // refs は全 cloud が対象（★5優先で並べる）
+      .filter(
+        (r) =>
+          r.answerReview !== "approved" &&
+          (r.expected === "cloud" || (r.referencePoints?.length ?? 0) > 0),
+      )
       .sort((a, b) => starCount(b) - starCount(a) || byId(a, b));
   }
   // labels: 既定は edge or borderline（FNリスク+判断割れ）。--all で全件。未承認のみ。
