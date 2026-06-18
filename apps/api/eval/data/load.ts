@@ -58,7 +58,9 @@ export const goldSchema = baseSchema.extend({
   //   （長文 answer をそのまま渡すと類似度判定に陥りノイズ床削減が薄れるため）。referencePoints が
   //   無ければ answer を 1 要素として代替する。数値は制度改定で腐るので要点を数値非依存にし、
   //   数値依存の確認は独立した 1 要点（「※最新の告示で要確認」）に隔離する。
-  answer: z.string().min(1).optional(),
+  // 空文字 = 回答なし（edge は answer 不要）。利用側は truthiness（referencePointsOf の
+  //   `if (g.answer)` 等）で「空＝なし」を一貫して扱うため、min(1) は課さず "" を許容する。
+  answer: z.string().optional(),
   answerReview: answerReview.optional(),
   referencePoints: z.array(z.string().min(1)).optional(),
 });
