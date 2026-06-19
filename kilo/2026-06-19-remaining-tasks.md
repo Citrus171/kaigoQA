@@ -7,15 +7,22 @@
 
 ## タスク
 
-### ✅ セッション作業
+### ✅ セッション作業（全完了）
 - [x] out/34: calc-benefit 20件 baseline 評価 (relaxed 55.0%)
-- [x] out/35: prompt V2 効果測定 (+25pt → 80.0%)
-- [x] out/36: easy 41件 V2 回帰確認 (95.1%, 回帰0)
+- [x] out/35: prompt V2 効果測定 (+25pt → 80.0%, omitted 7→4)
+- [x] out/36: easy 41件 V2 回帰確認 (95.1%, 回帰0, factual増加0)
 - [x] V2 本番反映 (rag-mvp.py EDGE_SYSTEM)
-- [ ] クリーンアップ + マイルストーンコミット
-- [ ] out/37: モデル比較 (DeepSeek Flash vs GPT-4o vs Claude Sonnet)
+- [x] クリーンアップ + マイルストーンコミット (bfd104d)
+- [x] out/37: モデル比較 (DeepSeek 85% = Claude 85% > GPT-4o 65%)
 
-### 未着手（次回以降）
-- [ ] 残存 omitted 3件 (004/005/014) の capacity 切り分け → out/37 で対応
+### out/37 結果
+- deepseek-flash: 17/20 (85.0%), bad=missing1+omit2
+- claude-sonnet-4: 17/20 (85.0%), bad=mis1+omit2
+- gpt-4o: 13/20 (65.0%), bad=missing1+omit6
+- gold-calc-005: 全3モデルとも omit → gold tier 問題と確定
+- gold-calc-004/014: モデル依存で pass/omit が分かれる → borderline
+
+### 次アクション（out/37 結論）
+- [ ] gold tier 再精査: 005 単位数を supplement に / 014 単位数+LIFE を supplement 検討
+- [ ] 再精査後の relaxed 再評価（gold 修正で omitted が溶けるか）
 - [ ] 既存hedge calc-benefit 19件のverified化 (優先度低)
-- [ ] gold-A-014 tier 再精査 (単位数/LIFEがsupplementの可能性)
