@@ -5,6 +5,56 @@
 
 > 詳細な設計判断・進捗・ハマり所は **`PROGRESS.md`**（一次情報）。
 
+---
+
+## AIルーティングPoC（介護保険QA）— Evaluation-driven RAG engineering
+
+介護保険QAを題材に、**RAGの品質を評価し、故障を切り分け、評価結果からアーキテクチャを変更する**までを実装した PoC。
+「RAGを作る」ではなく **評価基盤 → 故障分析 → ルート設計 → ガードレール → 構造化ログ** の流れが主眼。
+
+### Architecture
+
+```
+User Query
+    │
+    ▼
+Capability Router (LLM分類器, 分類精度 98.5%)
+    ├─ knowledge_qa → RAG (top-3 retrieval + 生成)
+    └─ escalation   → guarded response
+                      （数値の捏造を抑止し「手順＋制度定数＋ケアマネ誘導」へ）
+```
+
+設計判断の核心: 評価データ（gold）が「計算系質問は決定論的単一解を持たない」ことを示したため、
+当初想定の *Tool route（決定論計算）* を**廃止**し、escalation guardrail に置き換えた（データ駆動の設計変更）。
+
+### Evaluation Pipeline
+
+```
+Gold Dataset (135件, 5カテゴリ, referencePoints付き)
+    ▼
+Oracle RAG ……… retrieval不足 / generation不足 を分離
+    ▼
+LLM Judge (relaxed=正規KPI / strict=副軸)
+    ▼
+Failure Analysis (missing / omitted / misinterpreted / factual / overreach)
+    ▼
+Router Design (評価結果→route分岐＋route適応生成)
+```
+
+### Results (relaxed KPI)
+
+```
+88.1%  →  92.6%  →  94.1%
+top-1     top-3      Capability Router
+          (retrieval) (omitted/factual を route で解消, 回帰0)
+```
+
+- 詳細レポート: **[`apps/api/eval/PHASE1-EVAL-REPORT.md`](apps/api/eval/PHASE1-EVAL-REPORT.md)**（評価基盤・故障分離）
+- ルーター評価: **[`apps/api/eval/out/42-router.md`](apps/api/eval/out/42-router.md)**（分類精度・before/after・設計反復）
+- 再現コード/ログ: `apps/api/eval/out34-*.py`〜`out42-router.py` / `apps/api/eval/data/rag-router-log.jsonl`
+
+---
+
 ## 構成（npm workspaces）
 
 ```
