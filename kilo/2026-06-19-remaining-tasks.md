@@ -39,7 +39,7 @@
 - gold tier 問題が calc-benefit の最大の false negative 要因だった
 
 ### 次アクション
-- [ ] gold データの ★ 付与を tier 再精査結果に合わせて修正 (005[5], 014[3][5] の ★ 除去)
-- [ ] _manual_supp を全 eval スクリプトの classify_tier に統合（恒久化）
-- [ ] 修正後の gold で rag-mvp.py 本番評価を再実行
+- [x] gold データの ★ 付与を tier 再精査結果に合わせて修正 (005[4][5], 014[3][5] の ★ 除去)
+- [x] _manual_supp を全 eval スクリプトの classify_tier に統合（恒久化）
+- [ ] Phase 2: 修正 gold で全135件統合評価（最終KPI確定）
 - [ ] 既存hedge calc-benefit 19件のverified化 (優先度低)
