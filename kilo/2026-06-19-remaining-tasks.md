@@ -57,7 +57,14 @@
 
 カテゴリ別: service-compare 100% / system-explain 94% / calc-benefit 86% / boundary-case 80% / procedure 79%
 
+### out/40 retrieval 分析
+- missing 13件のうち **top-3 で 10件 (77%) 回収可能**
+  - top-2: 7件 / top-3: 10件 / top-4-5: 追加0件
+- 残存3件 (not in top-5): gold-A-071, gold-A-105, gold-A-114
+- 推定 relaxed: 88.1% → **95.5%** (top-3採用時)
+
 ### 残課題
-- [ ] retrieval 改善: missing 13件（9.6%）が最大の律速。top-1 88.9% → top-3 でどこまで回収できるか
-- [ ] omitted 3件 (gold-A-061, gold-A-070, gold-calc-004): 既存hedge 2件のverified化で潰せるか
+- [ ] retrieval: top-3 を本番採用し relaxed 増分を実測 (out/41)
+- [ ] retrieval: 残存3件の embedding/chunk 改善
+- [ ] omitted 3件: gold-A-061/070 verified化 + gold-calc-004 capacity
 - [ ] 既存hedge calc-benefit 19件のverified化 + tier再精査
