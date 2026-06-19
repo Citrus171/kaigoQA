@@ -1,0 +1,248 @@
+{
+  "gold-A-001": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-002": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目を正確に回答"
+  },
+  "gold-A-003": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目に対する回答があるため"
+  },
+  "gold-A-004": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "受給要件の違いを正確に説明"
+  },
+  "gold-A-005": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目に限定して問うため"
+  },
+  "gold-A-006": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-008": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を網羅しているため"
+  },
+  "gold-A-009": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を正確に網羅しているため"
+  },
+  "gold-A-010": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目を正確に回答"
+  },
+  "gold-A-011": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目に限定して問うため"
+  },
+  "gold-A-013": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "全要点を正確に含む"
+  },
+  "gold-A-014": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を網羅しているため"
+  },
+  "gold-A-026": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を満たしている"
+  },
+  "gold-A-027": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-028": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-029": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目の違いを正確に説明"
+  },
+  "gold-A-030": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を網羅しているため"
+  },
+  "gold-A-031": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-032": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目を正確に回答"
+  },
+  "gold-A-033": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を網羅しているため"
+  },
+  "gold-A-037": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "必要な情報を含んでいる"
+  },
+  "gold-A-038": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "市区町村確認を推奨しているため"
+  },
+  "gold-A-039": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": false,
+    "reason": "帰結情報の欠落"
+  },
+  "gold-A-040": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "核心情報を含んでいるため"
+  },
+  "gold-A-041": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいるため"
+  },
+  "gold-A-042": {
+    "factual": false,
+    "overreach": false,
+    "sufficient_relaxed": false,
+    "reason": "介護保険の強制加入を説明していない"
+  },
+  "gold-A-060": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目に限定して問うため"
+  },
+  "gold-A-085": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目の法的性格を答えている"
+  },
+  "gold-A-086": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含む"
+  },
+  "gold-A-087": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目の要点を網羅"
+  },
+  "gold-A-088": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいるため"
+  },
+  "gold-A-089": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を正確に含んでいる"
+  },
+  "gold-A-090": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-091": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を網羅しているため"
+  },
+  "gold-A-092": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を網羅しているため"
+  },
+  "gold-A-097": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-098": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を満たしている"
+  },
+  "gold-A-099": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を全て含んでいる"
+  },
+  "gold-A-102": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "特定項目を正確に回答"
+  },
+  "gold-A-103": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を満たしているため"
+  },
+  "gold-A-115": {
+    "factual": true,
+    "overreach": false,
+    "sufficient_relaxed": true,
+    "reason": "要点を網羅しているため"
+  }
+}
