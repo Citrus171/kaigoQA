@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
-"""Phase A (Gemma 4版): Gemma 4 26B A4B + oracle参照注入。
-Phase A(gemma3:4b)と完全同条件（同77件・同参照・同プロンプト構造・参照付き採点）で
-gemma3:4b の 27.3% と直接比較する。Gemma 4 が 4B の推論天井を破るかの決定的検証。
+"""ローカル品質検証: Ollama gemma4:12b（CPU）+ oracle参照注入。
 
-env: CF_ACCOUNT_ID, CF_API_TOKEN, OPENROUTER_API_KEY
-出力: data/phaseA-gemma4-incontext-results.json
+目的: Workers AI の Gemma 4 26B A4B（測定B=edge想定41件で36.6%）に対し、
+このPCで動く gemma4:12b がローカルでどの程度の品質を出すかを同条件で測る。
+※ CPU推論のため latency は測定対象外（品質のみ）。SLO-2 はローカルでは検証不可。
+
+Workers AI 版（phaseA-gemma4-incontext.py）とは別ファイル・別出力（Kilo の cloud+RAG 測定と非競合）。
+参照注入・採点ロジックは Workers AI 版と完全同一（gpt-4o judge・参照あり）。
+
+env: OPENROUTER_API_KEY / EVAL_SET=edge|cloud（既定=phaseA77） / GEMMA4_THINKING=on|off（既定off）
+出力: data/phaseA-gemma4-local-{set}{-thinkoff}.json
 """
 import json, os, time, requests, re as _re
 
-env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "..")
+def P(*a): return os.path.join(ROOT, *a)
+
+env_path = P("apps/api/.env")
 if os.path.exists(env_path):
     for line in open(env_path):
         line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
+        if not line or line.startswith("#") or "=" not in line: continue
         k, v = line.split("=", 1)
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
-ACC = os.environ["CF_ACCOUNT_ID"]; TOK = os.environ["CF_API_TOKEN"]
-MODEL = "@cf/google/gemma-4-26b-a4b-it"
-CF_API = f"https://api.cloudflare.com/client/v4/accounts/{ACC}/ai/run/{MODEL}"
-ORK = os.environ.get("OPENROUTER_API_KEY", "")
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434") + "/api/chat"
+MODEL = os.environ.get("OLLAMA_GEN_MODEL_LOCAL", "gemma4:12b")
+ORK = os.environ["OPENROUTER_API_KEY"]
 JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "openai/gpt-4o")
 JUDGE_URL = "https://openrouter.ai/api/v1/chat/completions"
+THINKING = os.environ.get("GEMMA4_THINKING", "off").lower()
 
-# Phase A(gemma3) と同一の EDGE_SYSTEM（公平比較）
+# Workers AI 版と同一の EDGE_SYSTEM（公平比較）
 EDGE_SYSTEM = (
     "あなたは介護施設の一次対応アシスタントです。利用者の質問に日本語で簡潔に(2〜3文)答えてください。"
     "事実が確認できない場合や施設固有の情報は推測せず「施設にご確認ください」と述べること。"
@@ -33,20 +40,15 @@ EDGE_SYSTEM = (
 
 def isgood(v): return bool(v) and v.get("factual") and v.get("sufficient") and not v.get("overreach")
 
-gold = {json.loads(l)["id"]: json.loads(l) for l in open("apps/api/eval/data/routing-gold-a.jsonl") if l.strip()}
-
-# 対象集合の切替（測定B = edge想定41件＝易問 / 既定 = Phase A gemma3 と同一の cloud想定77件）
-#   EVAL_SET=edge  → gold-a の expected=='edge'（41件・edge が実際に担う側）
-#   EVAL_SET=cloud → expected=='cloud'（79件・難問。cloud baseline 比較用）
-#   未指定         → phaseA-incontext の 77件（gemma3:4b と直接比較する旧既定）
+gold = {json.loads(l)["id"]: json.loads(l) for l in open(P("apps/api/eval/data/routing-gold-a.jsonl")) if l.strip()}
 EVAL_SET = os.environ.get("EVAL_SET", "").lower()
 if EVAL_SET in ("edge", "cloud"):
     target_ids = [r["id"] for r in gold.values() if r.get("expected") == EVAL_SET]
     set_label = f"gold-a expected=={EVAL_SET}"
 else:
-    phaseA = json.load(open("apps/api/eval/data/phaseA-incontext-results.json"))
-    target_ids = [it["id"] for it in phaseA["items"]]
-    set_label = "Phase A gemma3 と同一集合(77)"
+    pa = json.load(open(P("apps/api/eval/data/phaseA-incontext-results.json")))
+    target_ids = [it["id"] for it in pa["items"]]
+    set_label = "phaseA77"
 
 def reference_of(g):
     if g.get("answerReview") != "approved": return None
@@ -57,28 +59,22 @@ def reference_of(g):
 targets = []
 for tid in target_ids:
     g = gold[tid]; ref = reference_of(g)
-    if ref: targets.append({"id": tid, "query": g["query"], "refs": ref})
-print(f"対象: {len(targets)}件（{set_label}）/ model={MODEL} / thinking={os.environ.get('GEMMA4_THINKING','on')}")
-
-# GEMMA4_THINKING=off で thinking 無効化（SLO-2 ≤2秒 を満たす edge 構成の品質測定）
-THINKING = os.environ.get("GEMMA4_THINKING", "on").lower()
+    if ref: targets.append({"id": tid, "query": g["query"], "refs": ref, "category": g.get("category")})
+print(f"対象: {len(targets)}件（{set_label}）/ model={MODEL}（ローカルCPU）/ thinking={THINKING}")
 
 def gen(query, refs):
     ref_text = "\n".join(f"- {p}" for p in refs)
     sys_p = EDGE_SYSTEM + f"\n\n回答の参考情報（介護保険の事実）:\n{ref_text}"
     payload = {
+        "model": MODEL, "stream": False,
         "messages": [{"role": "system", "content": sys_p}, {"role": "user", "content": query}],
-        "max_tokens": 2048 if THINKING != "off" else 512,
+        "options": {"temperature": 0, "num_predict": 512 if THINKING == "off" else 2048},
     }
     if THINKING == "off":
-        payload["chat_template_kwargs"] = {"enable_thinking": False}
-    try:
-        r = requests.post(CF_API, headers={"Authorization": f"Bearer {TOK}"}, json=payload, timeout=120)
-        r.raise_for_status()
-        ch = (r.json().get("result", {}) or {}).get("choices") or []
-        return (ch[0].get("message", {}).get("content", "") if ch else "").strip()
-    except Exception as ex:
-        print(f"  gen FAIL {ex}"); return ""
+        payload["think"] = False  # Ollama 0.30+ thinking 無効化
+    r = requests.post(OLLAMA_URL, json=payload, timeout=600)
+    r.raise_for_status()
+    return (r.json().get("message", {}) or {}).get("content", "").strip()
 
 def judge(query, answer, refs):
     ref_text = "\n".join(f"- {p}" for p in refs)
@@ -101,9 +97,12 @@ AIの回答: {answer}
         "category": o.get("category", "ok"), "reason": str(o.get("reason", ""))}
 
 for i, t in enumerate(targets):
-    t["new_answer"] = gen(t["query"], t["refs"])
-    print(f"  gen [{i+1}/{len(targets)}] {t['id']}: {len(t['new_answer'])}c", flush=True)
-    time.sleep(0.2)
+    t0 = time.time()
+    try:
+        t["new_answer"] = gen(t["query"], t["refs"])
+    except Exception as ex:
+        t["new_answer"] = ""; print(f"  gen FAIL {t['id']}: {str(ex)[:80]}")
+    print(f"  gen [{i+1}/{len(targets)}] {t['id']}: {len(t['new_answer'])}c {int((time.time()-t0)*1000)}ms", flush=True)
 
 for i, t in enumerate(targets):
     try:
@@ -111,20 +110,17 @@ for i, t in enumerate(targets):
     except Exception as ex:
         t["new_verdict"] = None; print(f"  judge FAIL {t['id']}: {ex}")
     print(f"  judge [{i+1}/{len(targets)}] {t['id']}: good={isgood(t.get('new_verdict'))}", flush=True)
-    time.sleep(0.2)
 
-n = len(targets)
-new_good = sum(1 for t in targets if isgood(t.get("new_verdict")))
-print(f"\n=== Phase A (Gemma4) 結果（参照注入 {n}件）===")
-print(f"Gemma4 + 参照注入: {new_good}/{n} = {new_good/n*100:.1f}% good")
-print(f"（比較）gemma3:4b + 参照注入: 21/77 = 27.3%")
-print(f"（比較）gemma3:4b 参照なし: 0/77 = 0.0%")
-out = {"n": n, "new_good": new_good, "model": MODEL,
-       "items": [{"id": t["id"], "query": t["query"], "new_good": isgood(t.get("new_verdict")),
-                  "new_category": (t.get("new_verdict") or {}).get("category"),
+n = len(targets); good = sum(1 for t in targets if isgood(t.get("new_verdict")))
+print(f"\n=== ローカル gemma4:12b（{set_label} / 参照注入 {n}件 / thinking={THINKING}）===")
+print(f"good率: {good}/{n} = {good/n*100:.1f}%")
+print(f"（比較）Workers AI Gemma4 26B A4B thinkOFF: edge41=36.6% / 最難77=41.6%")
+out = {"n": n, "good": good, "model": MODEL, "set": set_label, "thinking": THINKING,
+       "items": [{"id": t["id"], "category": t.get("category"), "good": isgood(t.get("new_verdict")),
+                  "verdict_cat": (t.get("new_verdict") or {}).get("category"),
                   "answer": t.get("new_answer", "")[:200]} for t in targets]}
-suffix = "" if THINKING != "off" else "-thinkoff"
-setsfx = f"-{EVAL_SET}" if EVAL_SET in ("edge", "cloud") else ""
-outpath = f"apps/api/eval/data/phaseA-gemma4-incontext-results{setsfx}{suffix}.json"
+setsfx = f"-{EVAL_SET}" if EVAL_SET in ("edge", "cloud") else "-phaseA77"
+thsfx = "-thinkoff" if THINKING == "off" else ""
+outpath = P(f"apps/api/eval/data/phaseA-gemma4-local{setsfx}{thsfx}.json")
 json.dump(out, open(outpath, "w"), ensure_ascii=False, indent=2)
 print("Save:", outpath)

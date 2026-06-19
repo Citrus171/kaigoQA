@@ -1,0 +1,1158 @@
+{
+  "oracle_edge": {
+    "gold-A-001": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "介護保険法成立年が欠落"
+    },
+    "gold-A-002": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な情報を提供"
+    },
+    "gold-A-003": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-004": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "特定疾病の説明不足"
+    },
+    "gold-A-005": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な情報"
+    },
+    "gold-A-006": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "居住費・食費の説明不足"
+    },
+    "gold-A-008": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-009": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "同居家族の給付対象外が未記載"
+    },
+    "gold-A-010": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "利用時間の区分が不足"
+    },
+    "gold-A-011": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を正確にカバー"
+    },
+    "gold-A-013": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "事業計画策定が欠落"
+    },
+    "gold-A-014": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-026": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "法的根拠が欠如"
+    },
+    "gold-A-027": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "登録定員に言及なし"
+    },
+    "gold-A-028": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "訪問看護の言及が不足"
+    },
+    "gold-A-029": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "医療的ケアの具体例不足"
+    },
+    "gold-A-030": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "地域包括支援センター未言及"
+    },
+    "gold-A-031": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅し正確"
+    },
+    "gold-A-032": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "法第62条の言及なし"
+    },
+    "gold-A-033": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-037": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-038": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "主治医意見書が欠落"
+    },
+    "gold-A-039": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "重要な要点が不足"
+    },
+    "gold-A-040": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要支援の場合の説明不足"
+    },
+    "gold-A-041": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "特養・老健の要件未記載"
+    },
+    "gold-A-042": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "海外転出の情報が不足"
+    },
+    "gold-A-060": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "代行申請と主治医意見書に言及なし"
+    },
+    "gold-A-085": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細不足"
+    },
+    "gold-A-086": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "リハビリ専門職の配置に言及なし"
+    },
+    "gold-A-087": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部が不足"
+    },
+    "gold-A-088": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "指示書の要否に言及なし"
+    },
+    "gold-A-089": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細が不足"
+    },
+    "gold-A-090": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-091": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "限度額対象外の説明不足"
+    },
+    "gold-A-092": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を正確にカバー"
+    },
+    "gold-A-097": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-098": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細不足"
+    },
+    "gold-A-099": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "具体例不足"
+    },
+    "gold-A-102": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-103": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "同居家族の例が欠如"
+    },
+    "gold-A-115": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部が欠落"
+    }
+  },
+  "oracle_cloud": {
+    "gold-A-001": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "介護保険法成立年が欠如"
+    },
+    "gold-A-002": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "給付費の公費・保険料割合が不足"
+    },
+    "gold-A-003": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-004": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要件の違いを正確に説明"
+    },
+    "gold-A-005": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-006": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-008": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "地域包括ケアの中核機関説明不足"
+    },
+    "gold-A-009": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-010": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "利用時間の区分が不足"
+    },
+    "gold-A-011": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-013": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含んでいる"
+    },
+    "gold-A-014": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-026": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "報告義務の詳細が不足"
+    },
+    "gold-A-027": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-028": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-029": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細が不足"
+    },
+    "gold-A-030": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含んでいる"
+    },
+    "gold-A-031": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-032": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "法第62条の言及がない"
+    },
+    "gold-A-033": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "法律の言及が不足"
+    },
+    "gold-A-037": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "入院中の相談先が不足"
+    },
+    "gold-A-038": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点をすべて含んでいる"
+    },
+    "gold-A-039": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-040": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "ケアプラン作成手順が不足"
+    },
+    "gold-A-041": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "特養・老健の要件が不足"
+    },
+    "gold-A-042": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-060": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "代行申請とサービス継続が未記載"
+    },
+    "gold-A-085": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-086": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-087": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "partial",
+      "reason": "法的根拠の記載が不足"
+    },
+    "gold-A-088": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-089": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を正確に説明"
+    },
+    "gold-A-090": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-091": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "区分支給限度基準額の説明不足"
+    },
+    "gold-A-092": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅し正確"
+    },
+    "gold-A-097": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て網羅している"
+    },
+    "gold-A-098": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "訪問・通所の詳細不足"
+    },
+    "gold-A-099": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "具体例不足"
+    },
+    "gold-A-102": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-103": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-115": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "日常生活自立支援事業に言及なし"
+    }
+  },
+  "real_edge": {
+    "gold-A-001": {
+      "factual": false,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "背景情報が不足"
+    },
+    "gold-A-002": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-003": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-004": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "特定疾病の説明不足"
+    },
+    "gold-A-005": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な情報"
+    },
+    "gold-A-006": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "費用面の説明が不足"
+    },
+    "gold-A-008": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部が不足"
+    },
+    "gold-A-009": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "単位数と同居家族の条件が不足"
+    },
+    "gold-A-010": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "利用時間の区分が不足"
+    },
+    "gold-A-011": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-013": {
+      "factual": true,
+      "overreach": true,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点不足と地域密着型サービス誤り"
+    },
+    "gold-A-014": {
+      "factual": false,
+      "overreach": false,
+      "sufficient": false,
+      "category": "refusal",
+      "reason": "具体的な情報が不足"
+    },
+    "gold-A-026": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "報告義務内容が不足"
+    },
+    "gold-A-027": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "定員と中重度支援が不足"
+    },
+    "gold-A-028": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "訪問看護の言及が不足"
+    },
+    "gold-A-029": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細不足"
+    },
+    "gold-A-030": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "モニタリング頻度が不足"
+    },
+    "gold-A-031": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-032": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "法定給付補完と法第62条未言及"
+    },
+    "gold-A-033": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-037": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "代行申請等の情報不足"
+    },
+    "gold-A-038": {
+      "factual": false,
+      "overreach": true,
+      "sufficient": false,
+      "category": "hallucination",
+      "reason": "誤情報と不要情報が含まれる"
+    },
+    "gold-A-039": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部が欠けている"
+    },
+    "gold-A-040": {
+      "factual": false,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要介護認定と手順不足"
+    },
+    "gold-A-041": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "特養・老健の要件未記載"
+    },
+    "gold-A-042": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細が不足している"
+    },
+    "gold-A-060": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "主治医意見書等の情報不足"
+    },
+    "gold-A-085": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "介護提供体制の違いが不十分"
+    },
+    "gold-A-086": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "リハビリ専門職の配置に言及なし"
+    },
+    "gold-A-087": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点不足"
+    },
+    "gold-A-088": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "指示書の要否に言及なし"
+    },
+    "gold-A-089": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細不足"
+    },
+    "gold-A-090": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部が不足"
+    },
+    "gold-A-091": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細不足"
+    },
+    "gold-A-092": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細な使い分けが不足"
+    },
+    "gold-A-097": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部が欠落"
+    },
+    "gold-A-098": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細な使い分け説明不足"
+    },
+    "gold-A-099": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "具体例不足"
+    },
+    "gold-A-102": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "特定施設指定の有無が未言及"
+    },
+    "gold-A-103": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "具体例や判断基準が不足"
+    },
+    "gold-A-115": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部のみ含む"
+    }
+  },
+  "real_cloud": {
+    "gold-A-001": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "背景の詳細が不足"
+    },
+    "gold-A-002": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な情報"
+    },
+    "gold-A-003": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-004": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要件の違いを正確に説明"
+    },
+    "gold-A-005": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な情報を提供"
+    },
+    "gold-A-006": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "費用面の説明が不足"
+    },
+    "gold-A-008": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "地域包括支援センターの役割不足"
+    },
+    "gold-A-009": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "単位数と同居家族の条件が不足"
+    },
+    "gold-A-010": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅し正確"
+    },
+    "gold-A-011": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "正確で十分な回答"
+    },
+    "gold-A-013": {
+      "factual": true,
+      "overreach": true,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要介護認定等が欠如"
+    },
+    "gold-A-014": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "具体例が不足している"
+    },
+    "gold-A-026": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "詳細情報不足"
+    },
+    "gold-A-027": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "定員と中重度支援が不足"
+    },
+    "gold-A-028": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含む正確な回答"
+    },
+    "gold-A-029": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "医療ニーズ対応力に言及なし"
+    },
+    "gold-A-030": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "モニタリングと法的根拠が不足"
+    },
+    "gold-A-031": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を全て含んでいる"
+    },
+    "gold-A-032": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "法定給付補完と法根拠が欠如"
+    },
+    "gold-A-033": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-037": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "代行申請と持参物の記載不足"
+    },
+    "gold-A-038": {
+      "factual": false,
+      "overreach": true,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "主治医意見書が欠如"
+    },
+    "gold-A-039": {
+      "factual": false,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "更新手続きの要点不足"
+    },
+    "gold-A-040": {
+      "factual": false,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要介護認定と手順不足"
+    },
+    "gold-A-041": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "特養・老健の要件未記載"
+    },
+    "gold-A-042": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "海外転出の情報が不足"
+    },
+    "gold-A-060": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "主治医意見書等の詳細不足"
+    },
+    "gold-A-085": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点の一部が不足"
+    },
+    "gold-A-086": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "リハビリ専門職の配置が未言及"
+    },
+    "gold-A-087": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅し正確"
+    },
+    "gold-A-088": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "指示書の要否に言及なし"
+    },
+    "gold-A-089": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を正確に説明"
+    },
+    "gold-A-090": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-091": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "限度額やサービス内容が不足"
+    },
+    "gold-A-092": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-097": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を正確に網羅している"
+    },
+    "gold-A-098": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "主治医指示とケアマネ説明不足"
+    },
+    "gold-A-099": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "具体例不足"
+    },
+    "gold-A-102": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を正確に説明"
+    },
+    "gold-A-103": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": true,
+      "category": "ok",
+      "reason": "要点を網羅している"
+    },
+    "gold-A-115": {
+      "factual": true,
+      "overreach": false,
+      "sufficient": false,
+      "category": "partial",
+      "reason": "要点不足"
+    }
+  }
+}

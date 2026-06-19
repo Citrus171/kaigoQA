@@ -1,0 +1,39 @@
+# mise: ランタイム版固定 + タスク入口集約（k8s移行 step1 / docs/k8s-migration-plan.md §1）
+# 既存 npm scripts は壊さず、入口を `mise run <task>` に寄せるだけ。
+[tools]
+node = "22"
+
+[env]
+_.file = ".env"            # 既存 .env を読み込み（無ければ無視）
+
+[tasks.dev-api]
+description = "Hono API (Node) を起動 :8787"
+run = "npm run dev:api"
+
+[tasks.dev-web]
+description = "Next フロントを起動 :3456"
+run = "PORT=3456 npm run dev:web"
+
+[tasks.typecheck]
+description = "api + web の型チェック"
+run = "npm run typecheck"
+
+[tasks.test-api]
+description = "api の Vitest（実DB使用）"
+run = "npm run test:api"
+
+[tasks.db-up]
+description = "docker Postgres 起動 :5435"
+run = "npm run db:up"
+
+[tasks.db-push]
+description = "Drizzle スキーマ反映"
+run = "npm run db:push"
+
+[tasks.db-seed]
+description = "demo/admin ユーザー投入"
+run = "npm run db:seed"
+
+[tasks.eval-routing]
+description = "ルーティング評価（埋め込み=bge-m3）"
+run = "OLLAMA_EMBED_MODEL=bge-m3 npm run eval:routing -w @hybrid/api"

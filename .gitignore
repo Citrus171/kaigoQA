@@ -40,6 +40,9 @@ docs/
 # E2E eval 実行成果物（非決定的・大きい。再生成可）
 apps/api/eval/data/e2e-*.jsonl
 
+# embedキャッシュ（大きい・再生成可。bge-m3 で再計算できる）
+apps/api/eval/data/rag-corpus-embeddings*.json
+
 # E2E評価の生成成果物(回答本文/judge結果・再採点用)。Git管理外。
 eval-artifacts/
 

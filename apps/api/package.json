@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/dev.ts",
+    "start": "tsx src/dev.ts",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run check:data && npm run test",
     "check:data": "tsx scripts/check-data.ts",
