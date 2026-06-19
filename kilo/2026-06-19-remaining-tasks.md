@@ -41,5 +41,23 @@
 ### 次アクション
 - [x] gold データの ★ 付与を tier 再精査結果に合わせて修正 (005[4][5], 014[3][5] の ★ 除去)
 - [x] _manual_supp を全 eval スクリプトの classify_tier に統合（恒久化）
-- [ ] Phase 2: 修正 gold で全135件統合評価（最終KPI確定）
-- [ ] 既存hedge calc-benefit 19件のverified化 (優先度低)
+- [x] Phase 2: 修正 gold で全135件統合評価 → out/39 完了
+
+### out/39 最終 KPI
+
+| 指標 | 値 |
+|---|---|
+| **relaxed good（正規KPI）** | **119/135 = 88.1%** |
+| strict good（副軸） | 93/135 = 68.9% |
+| top-1 gid hit率 | 120/135 = 88.9% |
+| factual誤り | 2/135 = 1.5% |
+| overreach | 0/135 = 0% |
+| missing (retrieval) | 13/135 = 9.6% |
+| omitted (generation) | 3/135 = 2.2% |
+
+カテゴリ別: service-compare 100% / system-explain 94% / calc-benefit 86% / boundary-case 80% / procedure 79%
+
+### 残課題
+- [ ] retrieval 改善: missing 13件（9.6%）が最大の律速。top-1 88.9% → top-3 でどこまで回収できるか
+- [ ] omitted 3件 (gold-A-061, gold-A-070, gold-calc-004): 既存hedge 2件のverified化で潰せるか
+- [ ] 既存hedge calc-benefit 19件のverified化 + tier再精査
