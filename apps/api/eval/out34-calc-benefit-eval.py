@@ -62,6 +62,11 @@ _supp_pat = _re.compile(
     r'[、。]介護保険法第|'
     r'^★介護保険法第)')
 
+_manual_supp = {
+    "gold-calc-005": [4, 5],
+    "gold-calc-014": [3, 5],
+}
+
 ORACLE_GOOD_PCT = 92.7  # easy ベースライン (out/33)
 
 
@@ -148,7 +153,9 @@ def gen_cloud(query, refs):
     return r.json()["choices"][0]["message"]["content"].strip()
 
 
-def classify_tier(pt):
+def classify_tier(gid, pt_idx, pt):
+    if gid in _manual_supp and pt_idx in _manual_supp[gid]:
+        return "supplement"
     if _supp_pat.search(pt):
         return "supplement"
     return "main"
@@ -271,7 +278,7 @@ def main():
             if ans:
                 try:
                     refs = g.get("referencePoints") or []
-                    tiers = [classify_tier(pt) for pt in refs]
+                    tiers = [classify_tier(gid, idx, pt) for idx, pt in enumerate(refs)]
                     rec["verdict"] = judge2axis(g["query"], ans, refs, tiers)
                 except Exception as ex:
                     rec["verdict"] = {"factual": False, "overreach": False,
@@ -373,8 +380,8 @@ def main():
     all_supp_t = 0
     for gid, g in gold_dict.items():
         if gid in TARGET_IDS:
-            for pt in (g.get("referencePoints") or []):
-                if classify_tier(pt) == "supplement":
+            for idx, pt in enumerate(g.get("referencePoints") or []):
+                if classify_tier(gid, idx, pt) == "supplement":
                     all_supp_t += 1
                 else:
                     all_main_t += 1

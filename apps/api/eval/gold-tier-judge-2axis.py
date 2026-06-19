@@ -42,9 +42,13 @@ _supp_pat = _re.compile(
 _manual_supp = {
     "gold-A-001": [0, 1],  # 1997年成立/2000年施行
     "gold-A-026": [0],      # 法115条
+    "gold-calc-005": [4, 5],  # 改定文脈/単位数（質問はデータ提出要件）
+    "gold-calc-014": [3, 5],  # 単位数+LIFE要件/改定文脈（質問は人員要件）
 }
 
-def classify_tier(pt):
+def classify_tier(gid, pt_idx, pt):
+    if gid in _manual_supp and pt_idx in _manual_supp[gid]:
+        return "supplement"
     if _supp_pat.search(pt):
         return "supplement"
     return "main"
