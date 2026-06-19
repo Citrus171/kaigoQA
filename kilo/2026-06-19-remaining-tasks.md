@@ -63,8 +63,15 @@
 - 残存3件 (not in top-5): gold-A-071, gold-A-105, gold-A-114
 - 推定 relaxed: 88.1% → **95.5%** (top-3採用時)
 
+### out/41 top-3 RAG 実測
+- relaxed: 88.1% → **92.6%** (+4.4pt, 改善10件 − 悪化3件)
+- 90% 台突破。retrieval k=3 採用を推奨
+- 悪化: factual 2→4 件 (希釈コスト)、infra 1件 (A-074 タイムアウト)
+- 不変bad 6件: A-061(omitted), A-070(omitted), A-071(missing), A-105(missing), calc-004(omitted), calc-013(missing)
+
 ### 残課題
-- [ ] retrieval: top-3 を本番採用し relaxed 増分を実測 (out/41)
-- [ ] retrieval: 残存3件の embedding/chunk 改善
-- [ ] omitted 3件: gold-A-061/070 verified化 + gold-calc-004 capacity
-- [ ] 既存hedge calc-benefit 19件のverified化 + tier再精査
+- [x] retrieval: top-3 を本番採用し relaxed 増分を実測 (out/41)
+- [ ] Sprint 2: omitted 3件対策 (A-061/A-070 hedge verified化)
+- [ ] Sprint 2: gold-calc-004 残存 capacity ケース
+- [ ] retrieval: 残存 missing 2件 (A-071, A-105) の embedding 改善
+- [ ] Sprint 3: 既存hedge calc-benefit 19件のverified化 + tier再精査
