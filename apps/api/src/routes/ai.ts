@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { aiAskSchema } from "@/lib/schemas";
+import { aiAskSchema, aiQaSchema } from "@/lib/schemas";
 import { authMiddleware } from "@/auth/middleware";
 import { classifyComplexity } from "@/lib/classify";
+import { classifyRoute, buildSystemPrompt } from "@/lib/capability-router";
+import { retrieveTopK, RETRIEVAL_K } from "@/lib/rag";
 import { getRoutingClassifier, routerInfo } from "@/lib/routing";
 import type { RoutingDecision } from "@/lib/routing-model";
 import { queryRef } from "@/lib/routing-observability";
@@ -15,11 +17,12 @@ import {
 import {
   InferenceError,
   OllamaProvider,
+  WorkersAiProvider,
   OpenCodeProvider,
   type InferProvider,
 } from "@/lib/inference";
 import type { AppEnv } from "@/types";
-import type { AiAnswer, AiTier } from "@hybrid/shared";
+import type { AiAnswer, AiTier, AiQaAnswer } from "@hybrid/shared";
 
 // edge SLM が自信を持てる下限。これ未満なら cloud へエスカレーション。
 const EDGE_CONFIDENCE_THRESHOLD = 0.6;
@@ -29,13 +32,14 @@ const EDGE_CONFIDENCE_THRESHOLD = 0.6;
 const USE_CLASSIFIER = (process.env.AI_ROUTER ?? "rule") === "classifier";
 
 /**
- * edge(SLM) プロバイダを環境に応じて選ぶ。
- * - prod(Workers): Workers AI binding（後続タスク・localhost不可のため）
- * - dev(Node): このPCの Ollama
+ * edge(SLM) プロバイダを選ぶ。
+ * 既定 = Workers AI Gemma 4 26B A4B（GPU上で動く本命。dev/prod とも HTTP で到達可）。
+ * `AI_EDGE_PROVIDER=ollama` でローカル Ollama に切替（オフライン開発・CF課金回避用）。
  */
 function pickEdge(_c: unknown): InferProvider {
-  // 後続: c.env?.AI があれば WorkersAiProvider。現状 dev = Ollama のみ。
-  return new OllamaProvider();
+  const provider = process.env.AI_EDGE_PROVIDER ?? "workersai";
+  if (provider === "ollama") return new OllamaProvider();
+  return new WorkersAiProvider();
 }
 
 // 段1: edge/cloud の事前判定。classifier 有効時は成果物(current.json)ベースの分類器、
@@ -183,6 +187,54 @@ export const aiRoutes = new Hono<AppEnv>()
     } catch (e) {
       if (e instanceof InferenceError) {
         // 推論バックエンド起因の失敗は 502（上流が不調）として返す。
+        throw new HTTPException(502, { message: e.message });
+      }
+      throw e;
+    }
+  })
+  // フェーズ2 Capability Router + RAG。介護保険QA を意図で2分し RAG で回答する。
+  //   knowledge_qa = 参考情報をそのまま使い数値も省略せず回答（V2 prompt）
+  //   escalate     = 個別ケースの数値結果は断定せず手順＋制度定数＋ケアマネ誘導（guardrail prompt）
+  // 生成は cloud(OpenCode)。検索は CF bge-m3 で corpus 成果物と空間一致。
+  .post("/qa", zValidator("json", aiQaSchema), async (c) => {
+    const { question } = c.req.valid("json");
+    const cloud = new OpenCodeProvider();
+    try {
+      // 段1: 意図分類（knowledge_qa / escalate）。
+      const decision = await classifyRoute(question, cloud);
+      // 段2: RAG 検索（top-k）。corpus と同じ CF bge-m3 でクエリ埋め込み。
+      const hits = await retrieveTopK(question, RETRIEVAL_K);
+      // 段3: route に応じた system prompt で cloud 生成。
+      const system = buildSystemPrompt(
+        decision.route,
+        hits.map((h) => h.text),
+      );
+      const r = await cloud.infer(question, system);
+
+      const body: AiQaAnswer = {
+        answer: withDisclaimer(r.text),
+        route: decision.route,
+        routeReason: decision.reason,
+        model: cloud.name,
+        sources: hits.map((h) => ({
+          srcId: h.srcId,
+          score: h.score,
+          // 出典は先頭120字の抜粋に留める（応答肥大化の抑制）。
+          excerpt: h.text.replace(/\s+/g, " ").slice(0, 120),
+        })),
+        safety: {
+          disclaimer: true,
+          // escalate は数値捏造抑止のための意図的エスカレーション。
+          escalatedByGuardrail: decision.route === "escalate",
+          reasons:
+            decision.route === "escalate"
+              ? ["個別ケースの数値結果は一意に確定しないため guardrail 生成"]
+              : [],
+        },
+      };
+      return c.json(body);
+    } catch (e) {
+      if (e instanceof InferenceError) {
         throw new HTTPException(502, { message: e.message });
       }
       throw e;

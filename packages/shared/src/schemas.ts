@@ -46,9 +46,41 @@ export const aiAnswerSchema = z.object({
   safety: aiSafetySchema,
 });
 
+// Capability Router（フェーズ2）の質問リクエスト。介護保険QA を RAG で答える。
+export const aiQaSchema = z.object({
+  question: z
+    .string()
+    .trim()
+    .min(1, "質問は必須です")
+    .max(4000, "質問は4000文字以内で入力してください"),
+});
+
+// Router の振り分け先: knowledge_qa=参考知識で回答 / escalate=個別ケースの数値結果(捏造抑止guardrail)。
+export const aiRouteSchema = z.enum(["knowledge_qa", "escalate"]);
+
+// RAG で参照したコーパスチャンク（出典）。score はコサイン類似（正規化済み内積）。
+export const aiSourceSchema = z.object({
+  srcId: z.string(),
+  score: z.number(),
+  excerpt: z.string(),
+});
+
+export const aiQaAnswerSchema = z.object({
+  answer: z.string(),
+  route: aiRouteSchema,
+  routeReason: z.string(),
+  model: z.string(),
+  sources: z.array(aiSourceSchema),
+  safety: aiSafetySchema,
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateTodoInput = z.infer<typeof createTodoSchema>;
 export type AiAskInput = z.infer<typeof aiAskSchema>;
 export type AiTier = z.infer<typeof aiTierSchema>;
 export type AiSafety = z.infer<typeof aiSafetySchema>;
 export type AiAnswer = z.infer<typeof aiAnswerSchema>;
+export type AiQaInput = z.infer<typeof aiQaSchema>;
+export type AiRoute = z.infer<typeof aiRouteSchema>;
+export type AiSource = z.infer<typeof aiSourceSchema>;
+export type AiQaAnswer = z.infer<typeof aiQaAnswerSchema>;

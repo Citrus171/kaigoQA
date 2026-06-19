@@ -80,6 +80,85 @@ export class OllamaProvider implements InferProvider {
 }
 
 /**
+ * edge SLM（本命・prod想定）: Cloudflare Workers AI の Gemma 4 26B A4B。
+ * GPU 上で動くため CPU の Ollama より実用品質（ローカル CPU の Gemma4 は 0.36 tok/s で非現実的）。
+ * HTTP 呼び出しなので dev/prod 両方で動く。応答は OpenAI 形式 choices[].message.content
+ * （旧形式 result.response もフォールバック）。confidence は Ollama と同じ退化ヒューリスティック。
+ */
+export class WorkersAiProvider implements InferProvider {
+  readonly name: string;
+  private readonly url: string;
+  constructor(
+    private readonly accountId = process.env.CF_ACCOUNT_ID,
+    private readonly token = process.env.CF_API_TOKEN,
+    private readonly model = process.env.WORKERS_AI_EDGE_MODEL ??
+      "@cf/google/gemma-4-26b-a4b-it",
+    // thinking mode が reasoning にトークンを使うため content 用に余裕を持たせる（eval と統一）。
+    private readonly maxTokens = Number(process.env.WORKERS_AI_MAX_TOKENS ?? 2048),
+    private readonly timeoutMs = Number(process.env.WORKERS_AI_TIMEOUT_MS ?? 120000),
+  ) {
+    this.name = `workersai:${this.model}`;
+    this.url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/${this.model}`;
+  }
+
+  async infer(prompt: string) {
+    if (!this.accountId || !this.token) {
+      throw new InferenceError(
+        this.name,
+        "CF_ACCOUNT_ID / CF_API_TOKEN が未設定です",
+      );
+    }
+    let res: Response;
+    try {
+      res = await fetch(this.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: EDGE_SYSTEM_PROMPT },
+            { role: "user", content: prompt },
+          ],
+          max_tokens: this.maxTokens,
+        }),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (e) {
+      const reason =
+        e instanceof Error && e.name === "TimeoutError"
+          ? `Workers AI が ${this.timeoutMs}ms 以内に応答しませんでした`
+          : "Cloudflare Workers AI に接続できません";
+      throw new InferenceError(this.name, reason, e);
+    }
+    if (!res.ok) {
+      throw new InferenceError(
+        this.name,
+        `Workers AI が ${res.status} を返しました`,
+      );
+    }
+    const body = (await res.json()) as {
+      result?: {
+        choices?: { message?: { content?: string } }[];
+        response?: string;
+      };
+    };
+    const result = body.result ?? {};
+    // Gemma 4 は OpenAI 形式 choices[].message.content。旧形式 response もフォールバック。
+    const text = (
+      result.choices?.[0]?.message?.content ??
+      result.response ??
+      ""
+    ).trim();
+    if (text === "") {
+      throw new InferenceError(this.name, "Workers AI が空応答を返しました");
+    }
+    return { text, confidence: outputConfidence(text) };
+  }
+}
+
+/**
  * escalation(cloud LLM): OpenCode Go（OpenAI互換・定額）。
  * HTTP 呼び出しなので dev/prod 両方で動く（Workers からも到達可）。
  * confidence はゲートウェイから返らないため固定の高値を割り当てる（PoC）。
@@ -100,10 +179,18 @@ export class OpenCodeProvider implements InferProvider {
     this.name = `opencode-go:${this.model}`;
   }
 
-  async infer(prompt: string) {
+  // system は任意。RAG 生成（Capability Router）は参考情報入りの system prompt を渡す。
+  // 未指定なら従来どおり user メッセージのみ（/ai/ask のエスカレーションは無改修）。
+  async infer(prompt: string, system?: string) {
     if (!this.key) {
       throw new InferenceError(this.name, "OPENCODE_API_KEY が未設定です");
     }
+    const messages = system
+      ? [
+          { role: "system", content: system },
+          { role: "user", content: prompt },
+        ]
+      : [{ role: "user", content: prompt }];
     let res: Response;
     try {
       res = await fetch(this.url, {
@@ -114,7 +201,7 @@ export class OpenCodeProvider implements InferProvider {
         },
         body: JSON.stringify({
           model: this.model,
-          messages: [{ role: "user", content: prompt }],
+          messages,
         }),
         signal: AbortSignal.timeout(this.timeoutMs),
       });

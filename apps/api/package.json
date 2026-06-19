@@ -23,6 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build:model": "tsx scripts/build-routing-model.ts",
+    "build:rag": "tsx scripts/build-rag-corpus.ts",
     "split:gold-a": "tsx scripts/split-gold-a.ts",
     "review:gold-a": "tsx scripts/review-gold-a.ts",
     "eval:routing": "tsx eval/eval-routing.ts",
