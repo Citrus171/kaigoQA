@@ -62,6 +62,9 @@ export const aiQaAnswerSchema = z.object({
   // sources=RAG 出典（general 経路は RAG を使わないため空配列）。
   sources: z.array(aiSourceSchema),
   safety: aiSafetySchema,
+  // 観測用: topScore=ドメイン判定の top-1 retrieval score / latencyMs=ルート入口起点の総処理時間(embed込み)。
+  topScore: z.number(),
+  latencyMs: z.number().int().min(0),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
