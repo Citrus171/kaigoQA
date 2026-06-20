@@ -55,9 +55,11 @@ for (const it of items) {
   const empty = ans.length < 6;
   const r = {
     id: it.id,
+    query: it.query,
     route: o.route ?? "ERR",
     tier: o.tier ?? "ERR",
     escalated: o.safety?.escalatedByGuardrail ?? false,
+    answer: ans, // 免責文を除いた本文（judge 入力用。out/44 と参照を揃える）
     latency,
     status,
     empty,
@@ -108,5 +110,14 @@ const md = `# 46: 本番 /ai/qa フロー実測 (gold-a 41件・tier/latency 分
 - ${errors.length ? errors.map((r) => `${r.id}:${r.status}`).join(", ") : "なし"}
 `;
 
-fs.writeFileSync("eval/out/46-qa-flow-tier-dist.md", md);
+// judge 用に答案本文を jsonl 保存（out/46 md はコミット済のため上書きしない）。
+fs.writeFileSync(
+  "eval/data/rag-mvp-edge-qaflow.jsonl",
+  results
+    .map((r) =>
+      JSON.stringify({ id: r.id, query: r.query, answer: r.answer, route: r.route, tier: r.tier, latency: r.latency }),
+    )
+    .join("\n") + "\n",
+);
 console.log("\n========\n" + md);
+console.log(`\n[saved] eval/data/rag-mvp-edge-qaflow.jsonl (${results.length}件・judge入力用)`);
