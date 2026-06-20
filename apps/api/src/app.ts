@@ -13,6 +13,9 @@ import {
   type RoutingLogger,
 } from "@/lib/routing-observability";
 
+/** 稼働中ビルドの識別子。/health で返し、デプロイ反映の確認に使う。 */
+const API_VERSION = "1";
+
 /**
  * db と jwtSecret の解決方法を注入してアプリを組み立てる。
  * - Workers: c.env(バインディング)から解決（neon-http）
@@ -40,7 +43,7 @@ export function createApp(resolvers: Resolvers) {
     .get("/health", async (c) => {
       try {
         await c.get("db").execute(sql`select 1`);
-        return c.json({ status: "ok", db: "up" });
+        return c.json({ status: "ok", db: "up", version: API_VERSION });
       } catch {
         return c.json({ status: "error", db: "down" }, 503);
       }
