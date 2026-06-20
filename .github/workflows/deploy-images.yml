@@ -1,6 +1,7 @@
 # api / web の image を GHCR へ build & push する。
-# push → CI → GHCR(:dev 上書き) → Argo CD Image Updater が digest 変化を検知 → 自動デプロイ。
-# tag は固定 dev のみ(digest strategy で追跡。sha tag は git write-back 昇格時に導入)。
+# push → CI → GHCR(:dev と :sha-<short> を push) → Argo CD Image Updater が新しい sha- タグを検知し
+# kustomization.yaml へ git commit(write-back=git) → 自動デプロイ。
+# :sha-<short> = immutable な updater 追跡用、:dev = 人間の参照/ロールバック用。
 name: deploy-images
 
 on:
@@ -26,6 +27,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Compute short sha
+        id: vars
+        run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
@@ -41,6 +46,8 @@ jobs:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
           push: true
-          tags: ghcr.io/citrus171/kaigo-${{ matrix.app }}:dev
+          tags: |
+            ghcr.io/citrus171/kaigo-${{ matrix.app }}:dev
+            ghcr.io/citrus171/kaigo-${{ matrix.app }}:sha-${{ steps.vars.outputs.short }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
