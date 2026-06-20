@@ -146,6 +146,7 @@ functest-hybrid/   (npm workspaces)
   - `WorkersAiProvider` を thinking off 化（`chat_template_kwargs:{enable_thinking:false}` / `max_tokens` 512）+ `infer(prompt, system?)` で RAG system を受け取り対応。
   - `domainAnswer` の `knowledge_qa` を **edge(Gemma 4)+RAG 一次生成 → 退化(空・極短)/危険断定なら cloud fallback**。`escalate` は cloud 維持。
   - 評価: edge 90.2% ＞ cloud flash 85.4%（同基盤・gold-a 41件・`eval/out/44`）/ 実装前シミュレーション fallback 0%（`eval/out/45`）/ 本番フロー41件実測も fallback 0%・空答 0%（`eval/out/46`）。
+  - 経路忠実性: 本番フロー答案を out/44 同一 judge(gpt-4o・全ref統一)で採点し **90.2% = eval経路 90.2%（差 0pt・`eval/out/47`）**＝本番 `/ai/qa` 配線が評価スクリプトと同等品質の答案を生成。relaxed 90.2%(実用KPI)/strict 58.5%。
 - **テスト**: cascade 3分岐（edge確定 / 退化fallback / risky fallback）の関数単体（`test/ai-qa.test.ts`）+ `app.request("/ai/qa")` の routes 配線統合（`test/ai-qa-route.test.ts`、DB/CF 不要・モック注入で配線を検証）。計 40 件緑、typecheck(api+web) 緑。
 - **既知事項（最適化候補）**: `knowledge_qa` は edge 確定でも `classifyRoute` の cloud 往復が latency 律速（p50 4.4s、edge 生成自体は 〜0.9s）。分類の edge 化／ヒューリスティック化が次の改善対象。
 

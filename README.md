@@ -64,6 +64,7 @@ top-1     top-3      Capability Router
 - **品質（同一基盤・gold-a 41件）**: edge(Gemma 4, thinking off) **90.2% good** ＞ cloud(deepseek-v4-flash) 85.4%。空答 0%。
 - **実装前シミュレーション**: 既存の評価答案に cascade ロジックを当て、cloud fallback が発生しないこと（fallback 0%）を**課金ゼロで事前確認**してから実装。
 - **本番フロー実測（41件）**: 全件 edge 確定・fallback 0%・空答 0% で、シミュレーションの予測を実機で再現。
+- **経路忠実性（judge検証）**: 本番フロー答案を out/44 と同一の LLM judge(gpt-4o・全 referencePoints 統一) で採点し **90.2% = eval 経路 90.2%（差 0pt）**。本番 `/ai/qa` 配線が評価スクリプトと同等品質の答案を生成することを確認（`eval/out/47`）。
 - **latency**: edge 生成自体は **〜0.9s**（RAGなし general 経路で実測）。一方 `knowledge_qa` は **p50 4.4s** で、律速は **LLM 分類器(Capability Router)の cloud 往復**であり edge 生成ではない。→ 次の最適化候補は分類の脱 cloud 化（edge 分類／ヒューリスティック判定）。
 
 > cascade の安全網: edge 出力に医療/法令の危険断定 or 退化（空・極短）を検知したら cloud へ fallback する（品質より安全を優先する意図的エスカレーション）。
