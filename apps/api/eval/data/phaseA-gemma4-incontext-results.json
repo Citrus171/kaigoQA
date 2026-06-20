@@ -1,0 +1,1079 @@
+{
+  "n": 77,
+  "new_good": 0,
+  "model": "@cf/google/gemma-4-26b-a4b-it",
+  "items": [
+    {
+      "id": "gold-A-015",
+      "query": "特定疾病のうち末期がんの方はどのような条件で要介護認定を受けられますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "末期がんは特定疾病の一つであり、医師が回復の見込みがないと判断した場合には要介護認定の対象となります。通常の認定手続きを経て判定されますが、がんの進行状況により迅速な認定が行われる場合もあります。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "第2号被保険者の記載不足"
+      }
+    },
+    {
+      "id": "gold-A-016",
+      "query": "保険料の減免制度はどんなときに利用できますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "災害や失業、所得の減少などの事情がある場合に、市区町村の判断により減免を受けられる可能性があります。減免の基準や割合は自治体ごとに異なるため、詳細は市区町村の介護保険課へお問い合わせください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "生活保護受給者の免除が未記載"
+      }
+    },
+    {
+      "id": "gold-A-017",
+      "query": "介護保険のサービスと障害福祉サービスのどちらを優先して使うべきですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "原則として介護保険のサービスが優先されますが、障害福祉サービスにしかないメニューは別途利用可能です。65歳未満の方は、両制度の内容や利用者負担を比較検討し、専門職にご相談ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含む正確な回答"
+      }
+    },
+    {
+      "id": "gold-A-018",
+      "query": "住宅改修費の20万円の範囲でできる工事とできない工事を具体的に教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "対象となるのは手すりの設置や段差解消、便器の取替など5つの工事で、増築や新築、家具・家電の購入などは対象外となります。詳細な条件や申請方法については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "工事前の事前申請が未言及"
+      }
+    },
+    {
+      "id": "gold-A-019",
+      "query": "混合介護とは何ですか、保険のサービスと保険外のサービスを一緒に使うときの注意点を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "混合介護とは、介護保険のサービスと保険外のサービスを組み合わせて利用することです。注意点として、費用や内容の明確な区分と書面による説明・同意が必要であり、保険外部分は全額自己負担となります。また、保険外サービスの利用を条件に保険サービスを提供しないといった「抱き合わせ」は禁止されています。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含む正確な回答"
+      }
+    },
+    {
+      "id": "gold-A-020",
+      "query": "区分支給限度基準額はどのように計算するのですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "区分支給限度基準額は、要介護度ごとに月間の上限単位数が定められています。利用した各サービスの単位数を合計したものがこの限度額と比較され、超過分は全額自己負担となります。詳細は施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "地域区分と単価に言及なし"
+      }
+    },
+    {
+      "id": "gold-A-021",
+      "query": "第2号被保険者（40〜64歳）が医療保険に入っていない場合は介護保険はどうなりますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "日本の制度では、医療保険への加入が前提となっており、第2号被保険者の介護保険料は医療保険料と併せて徴収される仕組みです。個別の状況については、お住まいの市区町村の介護保険課へご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含む"
+      }
+    },
+    {
+      "id": "gold-A-022",
+      "query": "要介護認定の一次判定のコンピュータ判定はどのような仕組みですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "一次判定は、認定調査の74項目と主治医意見書に基づき、コンピュータが統計的に判定を行う仕組みです。樹形モデル（決定木）を用いて介護の手間を推計していますが、具体的な判定ロジックは公開されていません。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を正確にカバーしている"
+      }
+    },
+    {
+      "id": "gold-A-023",
+      "query": "介護保険法第1条（目的規定）に定められている理念を説明してください",
+      "new_good": false,
+      "new_category": null,
+      "answer": "介護保険法第1条では、国民の「共同連帯の理念」に基づくことが明示されています。要介護状態となった方へ保健医療や福祉サービスを提供することで、国民の保健医療の向上と福祉の増進を図ることを目的としています。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "正確で十分な回答"
+      }
+    },
+    {
+      "id": "gold-A-024",
+      "query": "住所地特例の対象となる施設と、この制度が必要な理由を教えてください",
+      "new_good": false,
+      "new_category": null,
+      "answer": "対象となる施設は、特別養護老人ホーム、介護老人保健施設、グループホーム、有料老人ホーム、サービス付き高齢者向け住宅などです。この制度は、施設がある地域に保険者が集中する不公平を防ぎ、全国的な公平性を確保するために設けられています。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "住所地特例の説明不足"
+      }
+    },
+    {
+      "id": "gold-A-025",
+      "query": "介護保険の給付と生活保護の介護扶助の関係はどう整理されていますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "介護保険の給付が優先的に適用され、利用者負担分については生活保護の介護扶助が支給される仕組みとなっています。これは、生活保護法第6条に定められた「他法他施策優先の原則」に基づいています。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "介護保険料の説明不足"
+      }
+    },
+    {
+      "id": "gold-A-034",
+      "query": "標準給付と地域支援事業の内容の違いを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "標準給付は、要介護・要支援認定を受けた方への全国一律の法定給付です。一方、地域支援事業は市区町村が地域の実情に応じて実施するもので、具体的な内容は自治体ごとに異なります。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "地域支援事業の類型が不足"
+      }
+    },
+    {
+      "id": "gold-A-035",
+      "query": "介護保険の対象となる指定居宅サービス事業者の指定基準を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "指定居宅サービス事業者の基準は、介護保険法に基づき、サービス種別ごとに省令で定められた人員・設備・運営に関するものです。詳細については、最新の省令を確認するか施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "基準の要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-036",
+      "query": "介護保険財政が厳しいと言われる理由と今後の見通しを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "高齢化や認定者の増加、現役世代の減少などが財政を圧迫する主な理由です。今後は、地域包括ケアの推進や在宅重視、介護予防の強化による効率化が進められる方針となっています。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "団塊世代の転換点未言及"
+      }
+    },
+    {
+      "id": "gold-A-043",
+      "query": "認定調査ではどんなことを聞かれますか、事前に準備しておくことはありますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "認定調査では、身体機能や認知機能、生活状況など計74項目の心身の状態について伺います。事前の準備として、日々の生活の様子を記録したり、主治医の情報を整理しておいたりすることをお勧めします。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "主治医意見書の言及不足"
+      }
+    },
+    {
+      "id": "gold-A-044",
+      "query": "認定調査に立ち会う家族がいない場合でも調査は受けられますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "本",
+      "new_verdict": {
+        "factual": false,
+        "overreach": false,
+        "sufficient": false,
+        "category": "refusal",
+        "reason": "回答が不完全"
+      }
+    },
+    {
+      "id": "gold-A-045",
+      "query": "認定結果に納得できない場合、どこにどのように不服を申し立てればいいですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "通知から3か月以内に、市区町村を経由して介護保険審査会へ審査請求を行うことができます。また、区分変更申請という方法もありますので、まずは市区町村の窓口で理由を確認することをお勧めします。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "全要点を正確に含む"
+      }
+    },
+    {
+      "id": "gold-A-046",
+      "query": "他市町村に引っ越すときの介護保険の手続きを順を追って教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "転出前に被保険者証の返却と転出証明書の受取を行い、転入先で転入手続きと同時に介護保険の資格異動手続きを行ってください。その後、ケアマネジャーの再選定やケアプランの再作成、契約の結び直しが必要となりますので、詳細は施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "住所地特例の説明不足"
+      }
+    },
+    {
+      "id": "gold-A-047",
+      "query": "本人が入院中で申請に行けないときの代理申請の方法を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "同居のご家族やケアマネジャー、施設などが代理で申請できますが、手続きには委任状や本人確認書類が必要となります。まずは市区町村の介護保険課へ電話で相談されるか、入院先の病院のMSW（ソーシャルワーカー）へ相談することをお勧めします。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含む正確な回答"
+      }
+    },
+    {
+      "id": "gold-A-048",
+      "query": "要介護認定で非該当になった場合、次に何をすればいいですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "市区町村の総合事業や独自の福祉サービス、民間サービスの利用を検討することが可能です。状態悪化時の再申請や、通知から3か月以内の審査請求といった選択肢もありますので、詳細は施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "チェックリスト方式未言及"
+      }
+    },
+    {
+      "id": "gold-A-049",
+      "query": "負担割合証の記載内容が誤っているかもしれない場合、どこに相談すればいいですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "お住まいの市区町村の介護保険課へお問い合わせください。その際、お手元に被保険者証と負担割合証をご用意の上でご確認をお願いいたします。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "負担割合の判定基準に触れていない"
+      }
+    },
+    {
+      "id": "gold-A-050",
+      "query": "介護保険被保険者証を紛失した場合の再発行手続きを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "お住まいの市区町村の介護保険課にて再交付の申請が可能です。手続きには本人確認書類が必要で、ご家族が代理で行う場合は委任状等も必要となるため、事前に電話で詳細を確認することをお勧めします。具体的なお手伝いについては、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "必要事項を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-051",
+      "query": "既存のケアプランに新しいサービスを追加したいときの手続きを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "まずは担当のケアマネジャーに新しいサービスへの希望をお伝えください。ケアマネジャーによる再評価を経て、利用者様やご家族の同意のもとで新しいケアプランが作成されます。なお、変更内容によってはサービス担当者会議の開催や、事業者との新たな契約が必要になる場合があります。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "限度額確認が不足"
+      }
+    },
+    {
+      "id": "gold-A-052",
+      "query": "サービス利用計画ができてから実際にサービスを利用開始するまでの流れを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "ケアプラン確定後、各事業者と契約を締結し、事業者が作成する個別サービス計画に基づき開始日を調整します。サービス利用票等が交付されることで、実際にサービスが開始されます。詳細については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含んでいる"
+      }
+    },
+    {
+      "id": "gold-A-053",
+      "query": "介護保険の認定有効期間が切れそうなのですが、まだ更新通知が来ていません。どうすればいいですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "更新通知が届いていなくても、ご自身で更新申請を行う必要があります。有効期間が切れると保険給付が受けられなくなる恐れがあるため、速やかに市区町村の介護保険課へお問い合わせください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "更新申請可能期間の言及なし"
+      }
+    },
+    {
+      "id": "gold-A-054",
+      "query": "サービス事業者を途中で変更したい場合の手続きを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "まずは担当のケアマネジャーに変更の希望を伝え、新しい事業者の紹介や引継ぎ、ケアプランの作成などの調整を依頼してください。あわせて、現在の事業者には契約解除の意思を伝え、解約条件を確認する必要があります。詳細な手順については施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含む"
+      }
+    },
+    {
+      "id": "gold-A-055",
+      "query": "介護保険の認定調査で、本人がうまく状態を説明できない場合の対応を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "本人がうまく説明できない場合は、調査員がご家族やケアマネジャー、ヘルパー等から聞き取りを行います。介護者の同席が望ましく、調査員は本人の動作や反応も観察して評価を行います。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "主治医意見書の重要性が欠如"
+      }
+    },
+    {
+      "id": "gold-A-056",
+      "query": "要介護認定の申請をしてから結果が出るまでに今のサービスは使えますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "申請の種類（新規・更新・区分変更）によって、保険給付の扱いが異なります。新規申請は結果が出るまで対象外となる場合がありますが、更新や区分変更は従前の区分で利用できる場合があります。詳細については施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-057",
+      "query": "訪問看護ステーションにサービスを依頼するにはどういう手続きが必要ですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "まずは主治医に相談し、訪問看護指示書を発行してもらうことが最初のステップとなります。その後、ケアマネジャーを通じてケアプランに組み込み、ステーションと利用契約を結ぶ手続きが必要です。具体的な進め方については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "医療保険と介護保険の判断が不足"
+      }
+    },
+    {
+      "id": "gold-A-058",
+      "query": "要介護認定の申請後に引っ越した場合、手続きはどうなりますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "認定調査の実施状況により手続きが異なるため、転居前後の両市区町村の介護保険課へご相談ください。調査前であれば転入先での再申請が現実的ですが、詳細は自治体へご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅し正確"
+      }
+    },
+    {
+      "id": "gold-A-059",
+      "query": "介護保険の認定有効期間が終わったことに気づかずサービスを利用してしまった場合の対応を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "",
+      "new_verdict": null
+    },
+    {
+      "id": "gold-A-061",
+      "query": "要介護3で訪問介護（身体介護）と通所介護を週2回ずつ組み合わせたときの限度額を計算してほしい",
+      "new_good": false,
+      "new_category": null,
+      "answer": "正確な計算には、サービスの具体的な利用時間、事業所の規模、地域区分などの詳細な情報が必要です。個別の計算については、実際のケアプランに基づき担当のケアマネジャーにご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "必要情報と手順を正確に提示"
+      }
+    },
+    {
+      "id": "gold-A-062",
+      "query": "年金収入が250万円で単身世帯の場合、介護保険の自己負担割合は1割ですか2割ですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "自己負担割合は、年金収入だけでなく控除後の所得や他の所得の有無によって判定が異なります。正確な判定については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "具体的な判定基準に触れていない"
+      }
+    },
+    {
+      "id": "gold-A-063",
+      "query": "介護職員等処遇改善加算の加算Iと加算IIでは具体的な要件にどんな差がありますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "加算Iはキャリアパスや賃金改善等の3要件を高い水準で満たす必要がありますが、加算IIはこれらを一定程度満たすことで算定可能です。なお、加算IIの加算率は加算Iよりも低くなっています。詳細は最新の告示や施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を正確にカバー"
+      }
+    },
+    {
+      "id": "gold-A-064",
+      "query": "個別機能訓練加算IIを算定するために必要な人員配置と計画作成の要件を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "機能訓練指導員（理学療法士等）の専従配置や、個別計画の作成・実施・評価、居宅への訪問評価などの要件があります。加算IIの具体的な算定要件や最新の基準については、必ず施設へ直接ご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要件を正確に網羅している"
+      }
+    },
+    {
+      "id": "gold-A-065",
+      "query": "高額介護サービス費の支給申請手続きの具体的な流れと必要書類を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "支給対象月の翌月以降に、市区町村の介護保険課へ申請書、領収書、被保険者証、振込口座情報を用いて申請してください。自治体により運用が異なるため、詳細は施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "世帯合算と自動判定に言及なし"
+      }
+    },
+    {
+      "id": "gold-A-066",
+      "query": "福祉用具貸与で特殊寝台（介護ベッド）を借りた場合の1か月あたりの自己負担額を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "月額の目安は数千円から1万円程度ですが、正確な自己負担額はご契約内容や利用者様の負担割合によって異なります。詳細については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を正確に反映している"
+      }
+    },
+    {
+      "id": "gold-A-067",
+      "query": "償還払いを利用する場合の手続きと、支給までにかかる期間を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "利用者が一旦全額を支払い、事業者から受け取った領収書やサービス提供証明書を市区町村へ申請して手続きを行います。支給までの期間は、申請から1〜2か月程度となります。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含む"
+      }
+    },
+    {
+      "id": "gold-A-068",
+      "query": "介護保険の給付制限（滞納時の措置）について、どの程度滞納するとどういう制限がかかりますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "滞納期間に応じて、1年以上で償還払い方式への切り替え、1年6か月以上で給付の一部差し止め、2年以上で負担割合の引き上げなどの措置がとられる場合があります。詳細な条件については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を正確に網羅"
+      }
+    },
+    {
+      "id": "gold-A-069",
+      "query": "区分支給限度基準額を超過しそうな場合、どんな調整をすればいいですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "まずはケアマネジャーにご相談いただき、ケアプランの調整を依頼してください。具体的には、利用回数や時間の見直し、区分支給限度額対象外サービスの活用、または区分変更による要介護度の見直しなどを検討することになります。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "インフォーマルサービス未言及"
+      }
+    },
+    {
+      "id": "gold-A-070",
+      "query": "福祉用具購入費（入浴補助用具など）の支給を受けるための手続きと上限額を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "手続きは、ケアプランへの位置付け後に一度全額で購入し、その後市区町村へ償還払いの申請を行います。購入前に市区町村への事前確認が必要な場合もあります。支給限度額については最新の告示により異なるため、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "支給対象の詳細が不足"
+      }
+    },
+    {
+      "id": "gold-A-071",
+      "query": "通所介護の栄養改善加算を算定するための具体的な要件を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "栄養士等の配置や、栄養状態の評価に基づいた栄養改善計画の作成・実施などが主な要件となります。具体的な算定条件や最新の規定については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "要件の詳細が不足"
+      }
+    },
+    {
+      "id": "gold-A-072",
+      "query": "訪問介護のいわゆる2時間ルールと生活援助の回数制限について具体的に教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "生活援助の1回あたりの提供時間は、標準的に20分以上2時間未満とされています。具体的な回数や適用については、同居家族の有無などの状況に基づきケアマネジャーが判断するため、詳細は施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "詳細説明不足"
+      }
+    },
+    {
+      "id": "gold-A-073",
+      "query": "通所リハビリテーションのリハビリテーションマネジメント加算の算定要件を満たしているか確認したい",
+      "new_good": false,
+      "new_category": null,
+      "answer": "算定要件を満たしているかについては、個別の状況により異なるため、施設にご確認ください。リハビリテーション計画の作成や定期的な会議の開催、生活環境の評価などが要件に含まれます。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "要件の一部のみ言及"
+      }
+    },
+    {
+      "id": "gold-A-074",
+      "query": "福祉用具貸与の種目ごとの貸与価格の上限を知りたい",
+      "new_good": false,
+      "new_category": null,
+      "answer": "貸与価格の上限は種目ごとに厚生労働省によって定められており、金額は数百円から1万円を超えるものまで幅広く異なります。正確な上限額や事業者ごとの価格の違いについては、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "特例加算と告示確認が不足"
+      }
+    },
+    {
+      "id": "gold-A-075",
+      "query": "ケアプランに位置付けられていないサービスを受けた場合、費用はどうなりますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "ケアプランに位置付けられていないサービスは、原則として介護保険が適用されず全額自己負担となります。ただし、緊急時などの例外的なケースもございますので、詳細は施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "事前相談と事後承認に言及なし"
+      }
+    },
+    {
+      "id": "gold-A-076",
+      "query": "訪問介護と通所リハビリを併用した場合、限度額の範囲内でそれぞれ何回ずつ利用できますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "利用できる回数は、お客様の要介護度や各サービスの単位数によって異なるため、一律には決まっておりません。具体的な回数の試算については、施設または担当のケアマネジャーにご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-077",
+      "query": "訪問入浴介護の利用料金はどのように計算されますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "訪問入浴介護の料金は、1回あたりの単位数に利用回数と地域区分単価を掛け、そこに利用者様の負担割合（1〜3割）を乗じて算出されます。具体的な金額や加算の詳細については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "加算や職員条件が不足"
+      }
+    },
+    {
+      "id": "gold-A-078",
+      "query": "介護保険のサービスを利用した月の途中で要介護度が変わった場合、限度額はどう扱われますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "介護保険の限度額は暦月単位で管理されるため、月の途中で区分変更があっても日割り計算は行われません。実務上は変更前のケアプランを月内まで利用し、翌月から新しい限度額が適用されることが一般的です。具体的な取り扱いについては、担当のケアマネジャーにご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含む正確な回答"
+      }
+    },
+    {
+      "id": "gold-A-079",
+      "query": "老健（介護老人保健施設）の月額費用の目安を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "費用は要介護度や部屋のタイプ、食費・居住費などの条件によって大きく変動します。1割負担の場合、月額7〜15万円程度が一つの目安となります。詳細については、必ず各施設へ直接ご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-080",
+      "query": "短期入所生活介護（ショートステイ）を1週間利用した場合の自己負担額を計算して",
+      "new_good": false,
+      "new_category": null,
+      "answer": "自己負担額は、要介護度や地域区分、食費・居住費などの条件により大きく異なります。正確な金額については、ご利用の施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "具体的計算式が不足"
+      }
+    },
+    {
+      "id": "gold-A-081",
+      "query": "訪問介護の特定事業所加算の区分ごとの要件と加算率の違いを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "特定事業所加算にはIからVまでの5区分があり、区分が高いほど加算率が高くなります。要件はサービス提供責任者の配置や有資格者の割合などに基づき、加算Iほど厳格な基準となっています。詳細な要件や具体的な加算率については、最新の告示や施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-082",
+      "query": "介護保険の高額医療合算制度とはどのようなものですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "介護保険と医療保険の自己負担額を世帯単位で年度ごとに合算し、基準額を超えた超過分が払い戻される制度です。申請は市区町村の介護保険課や各医療保険者に対して行います。所得によって基準額が異なるため、詳細は最新の制度をご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-083",
+      "query": "居宅療養管理指導の利用料金の仕組みを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "料金は、職種ごとに定められた単位数に利用者様の負担割合と地域単価を乗じて算出されます。このサービスは区分支給限度基準額の対象外のため、他の介護サービスの利用限度額に影響しません。具体的な料金や算定回数の上限については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "医師等の訪問が未言及"
+      }
+    },
+    {
+      "id": "gold-A-084",
+      "query": "特定施設入居者生活介護（介護付き有料老人ホーム等）の介護報酬のしくみを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "特定施設の介護報酬は、要介護度や居室のタイプに応じた包括報酬を基本とし、各種加算が加わります。介護サービス費とは別に、居住費や食費などの実費負担が発生します。詳細については、最新の報酬改定や施設へご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "加算や計算方法の詳細不足"
+      }
+    },
+    {
+      "id": "gold-A-093",
+      "query": "特養と老健と介護医療院の費用を比較してください",
+      "new_good": false,
+      "new_category": null,
+      "answer": "一般的に特養（多床室）が最も低額で、老健や介護医療院はやや高額になる傾向がありますが、いずれも食費や居住費が別途必要です。実際の費用は施設や地域、所得状況により異なるため、詳細は施設へ直接ご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "要介護要件未記載"
+      }
+    },
+    {
+      "id": "gold-A-094",
+      "query": "近所で空きのあるグループホームを探しています",
+      "new_good": false,
+      "new_category": null,
+      "answer": "空き状況は施設ごとに異なるため、地域包括支援センターやケアマネジャー様へご相談ください。介護サービス情報公表システムでの確認や、各施設への直接のお問い合わせをお勧めいたします。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "市区町村情報が不足"
+      }
+    },
+    {
+      "id": "gold-A-095",
+      "query": "在宅で24時間の介護が必要な場合、どんなサービスの組み合わせが考えられますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "定期巡回・随時対応型訪問介護看護と夜間対応型訪問介護の組み合わせや、小規模多機能型居宅介護などの利用が考えられます。要介護度や住環境などに基づきケアマネジャーが設計するため、具体的なプランについては施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-096",
+      "query": "ショートステイを利用している間に家で受けている訪問介護はどうなりますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "ショートステイの利用中は、原則としてご自宅での訪問介護などの居宅サービスは休止となります。具体的な調整についてはケアマネジャーがケアプランに基づいて行いますので、事前にケアマネジャーへご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "医療系サービスの言及不足"
+      }
+    },
+    {
+      "id": "gold-A-100",
+      "query": "軽費老人ホーム（ケアハウス）の費用と入居条件を具体的に教えてください",
+      "new_good": false,
+      "new_category": null,
+      "answer": "入居には60歳以上で住宅確保が困難な場合などの条件があり、市区町村による入所判定が必要となる場合があります。費用は所得に応じて変動し、食事提供の有無などによっても異なります。具体的な費用や条件については、各施設や市区町村にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-101",
+      "query": "認知症の高齢者に適した施設としてグループホームと有料老人ホーム、どちらがよいか迷っています",
+      "new_good": false,
+      "new_category": null,
+      "answer": "最適な選択は、ご本人の認知症の程度や身体状態、ご家族のご希望等によって異なります。グループホームは少人数で家庭的な認知症ケアが特徴ですが、有料老人ホームは介護付きや住宅型など多様な種類があります。まずはケアマネジャー等へ相談し、実際の施設を見学することをお勧めします。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を全て含んでいる"
+      }
+    },
+    {
+      "id": "gold-A-104",
+      "query": "介護予防・日常生活支援総合事業のサービスは介護保険給付と同じ扱いですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "総合事業は介護保険制度の枠組み内にある地域支援事業ですが、法定給付である介護予防給付とは別枠の扱いです。サービス内容や利用料は市区町村ごとに異なるため、詳細は施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-105",
+      "query": "介護保険と医療保険の負担区分の線引きが難しいケースについて具体例で教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "訪問看護は急性増悪期や終末期は医療保険、安定期は介護保険が原則ですが、通所リハビリも術後か維持期かによって区分が分かれる場合があります。正確な線引きについては、主治医やケアマネジャーにご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "福祉用具の言及がない"
+      }
+    },
+    {
+      "id": "gold-A-106",
+      "query": "ケアプランの目標が達成できていない場合、どんなタイミングで見直すべきですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "法令による定期的な見直し（6か月に1回、予防ケアは3か月に1回）のほか、心身の状態や入院などで状況が変わった際にも随時見直しを行います。目標が達成できていない場合は、早めにケアマネジャーへ相談し、目標の現実性やサービス内容を検討することが推奨されます。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅し正確に回答"
+      }
+    },
+    {
+      "id": "gold-A-107",
+      "query": "本人がサービス利用を拒否していますが、家族としては必要な状態だと思います。どう対応すればいいですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "まずはご本人が不安や羞恥心など、どのような理由で拒否されているのかを丁寧にお聞きください。その上で、ケアマネジャー等の専門職に相談し、短時間から始めるなどの段階的な導入を検討することをお勧めします。具体的な対応については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-108",
+      "query": "要介護認定の有効期間内に海外転出する場合、認定はどうなりますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "海外へ転出して住民票を削除する場合、介護保険の被保険者資格を喪失するため、要介護認定も効力を失います。詳細な手続きや個別の状況については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "短期渡航時の情報不足"
+      }
+    },
+    {
+      "id": "gold-A-109",
+      "query": "災害が起きたときの介護保険の特例措置について教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "被災地では、厚生労働省の通知により、認定の継続や利用者負担の減免、施設の人員・設備基準の一時的な緩和などの特例措置が行われることがあります。具体的な措置の内容は、災害の規模や被害状況によって異なります。詳細については、お住まいの自治体や施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "特例措置の要点を網羅"
+      }
+    },
+    {
+      "id": "gold-A-110",
+      "query": "家族の介護負担が限界です。緊急でショートステイを利用できますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "ショートステイの緊急利用は空き状況によりますので、まずは担当のケアマネジャーへ至急ご連絡ください。ケアマネジャーが空き状況の確認や手続きの調整を行える場合があります。具体的な受け入れの可否については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "緊急利用加算に触れていない"
+      }
+    },
+    {
+      "id": "gold-A-111",
+      "query": "認知症の進行でこれまで通っていたデイサービスでの受け入れが難しくなってきました。どうすればいいですか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "まずはケアマネジャーに状況を伝え、サービス内容の見直しや事業所の変更を検討してください。認知症対応型の通所介護やグループホームなどの選択肢、現在の事業所での条件再調整、要介護度の見直しなども検討の対象となります。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "正確で要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-112",
+      "query": "ケアプラン通りにサービスが提供されていないと感じます。どうすれば改善されますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "まずは担当のケアマネジャーに具体的な状況を伝えてください。ケアマネジャーが事業者に事実確認を行い、改善を求めてくれます。それでも改善が見られない場合は、事業所の管理者や市区町村へ相談することをご検討ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "サービス事業者変更が未言及"
+      }
+    },
+    {
+      "id": "gold-A-113",
+      "query": "一人暮らしの高齢者が地域で孤立しないように利用できる制度やサービスを教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "地域包括支援センターが総合的な相談窓口となりますので、まずはそちらへご相談ください。自治体による見守りサービスや、社会参加を目的とした通所サービス、地域のボランティア活動など、介護認定がなくても利用できる選択肢がいくつかあります。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "要点の一部が不足"
+      }
+    },
+    {
+      "id": "gold-A-114",
+      "query": "老老介護で共倒れになりそうです。どんな支援が受けられますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "ショートステイによる休息や、訪問介護・通所介護による介護負担の軽減といった支援が受けられます。また、施設入所の検討も一つの選択肢ですので、具体的な内容については施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "小規模多機能型居宅介護が欠如"
+      }
+    },
+    {
+      "id": "gold-A-116",
+      "query": "介護保険施設での看取りと医療機関での看取り、どちらを選ぶべきか迷っています",
+      "new_good": false,
+      "new_category": null,
+      "answer": "施設では住み慣れた環境でのケアを継続しやすく、医療機関では急変時の対応が迅速ですが生活の制約が生じやすいという違いがあります。ご本人の意思を尊重するACP（人生会議）を軸に、主治医やケアマネジャー、ご家族で十分に話し合われることをお勧めします。具体的な体制については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-117",
+      "query": "運転免許を返納した高齢者の外出支援に使えるサービスはありますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "自治体のバス・タクシー利用助成やコミュニティバス、福祉有償運送などの移動手段がございます。また、介護保険の通所系サービスを利用した送迎も外出支援として活用いただけます。詳細については、地域包括支援センターや施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "要点を網羅している"
+      }
+    },
+    {
+      "id": "gold-A-118",
+      "query": "介護保険の対象外となる「日常生活の援助」と対象となる「生活援助」の違いはどのように判断されますか",
+      "new_good": false,
+      "new_category": null,
+      "answer": "その援助がなければ日常生活を営むことが困難かという基準で判断されます。調理や洗濯などの基本的な家事は対象となりますが、草むしりやペットの世話などは対象外です。個別の判断については、担当のケアマネジャーや施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "家族の状況に関する情報不足"
+      }
+    },
+    {
+      "id": "gold-A-119",
+      "query": "訪問介護と障害福祉サービスの居宅介護、どちらを利用すべきか判断できません",
+      "new_good": false,
+      "new_category": null,
+      "answer": "年齢や要介護認定の状況によって適用される制度が異なります。ケアマネジャーや市区町村の窓口で、サービス内容や負担額を比較しながら相談することをお勧めします。個別の判断については、施設にご確認ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": false,
+        "category": "partial",
+        "reason": "要点の詳細不足"
+      }
+    },
+    {
+      "id": "gold-A-120",
+      "query": "本人は自宅にいたがっているが、介護者の健康状態が悪化して在宅継続が難しくなってきた場合の選択肢を教えて",
+      "new_good": false,
+      "new_category": null,
+      "answer": "ケアプランを見直して介護サービスを増やしたり、ショートステイを活用して介護負担を軽減したりする方法があります。また、小規模多機能型居宅介護や施設入所の検討も選択肢の一つです。まずはケアマネジャーや地域包括支援センターへご相談ください。",
+      "new_verdict": {
+        "factual": true,
+        "overreach": false,
+        "sufficient": true,
+        "category": "ok",
+        "reason": "全要点を網羅している"
+      }
+    }
+  ]
+}

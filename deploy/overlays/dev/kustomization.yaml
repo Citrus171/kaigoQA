@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kaigo
+
+resources:
+  - ../../base
+
+images:
+  - name: hybrid-api:dev
+    newName: hybrid-api
+    newTag: dev
+  - name: hybrid-web:dev
+    newName: hybrid-web
+    newTag: dev
+
+patches:
+  - target:
+      kind: Deployment
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: StatefulSet
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1

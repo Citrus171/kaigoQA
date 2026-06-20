@@ -1,0 +1,23 @@
+# node_modules は各ステージで npm ci する（hoist 済みを持ち込まない）
+node_modules
+**/node_modules
+# build 成果物
+.next
+**/.next
+dist
+**/dist
+# VCS / ローカルメモ / 機密
+.git
+.gitignore
+.env
+**/.env
+**/.env.*
+kilo/
+docs/
+# 評価成果物（実行時不要・大きい）
+apps/api/eval/data/*.jsonl
+apps/api/eval/data/*.json
+# その他
+*.log
+.DS_Store
+*.md

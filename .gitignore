@@ -31,3 +31,26 @@ docs/
 *.swp
 .idea/
 .vscode/
+
+# eval/out（分析md・手順書・Dataset A クエリ等の成果物）は追跡する
+#   = 上の汎用 `out/`（build outputs）除外の例外。
+!apps/api/eval/out/
+!apps/api/eval/out/**
+
+# E2E eval 実行成果物（非決定的・大きい。再生成可）
+apps/api/eval/data/e2e-*.jsonl
+
+# embedキャッシュ（大きい・再生成可。bge-m3 で再計算できる）
+apps/api/eval/data/rag-corpus-embeddings*.json
+
+# Python eval スクリプトのバイトコードキャッシュ
+apps/api/eval/__pycache__/
+
+# フェーズA in-context 中間生成物（out43-46 と無関係・再生成可）
+apps/api/eval/data/phaseA-*.json
+
+# E2E評価の生成成果物(回答本文/judge結果・再採点用)。Git管理外。
+eval-artifacts/
+
+# Kilo Code のプラン/作業ファイル（ローカル設計メモ・Git管理外）
+.kilo/

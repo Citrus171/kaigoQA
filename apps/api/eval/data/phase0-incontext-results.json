@@ -1,0 +1,84 @@
+{
+  "n": 11,
+  "old_good": 0,
+  "new_good": 3,
+  "items": [
+    {
+      "id": "gold-18",
+      "query": "要介護2でデイサービスは何回利用できますか",
+      "old_good": false,
+      "new_good": true,
+      "new_reason": "ケアプランに基づく説明が適切"
+    },
+    {
+      "id": "gold-19",
+      "query": "負担割合証が2割になる条件を教えてください",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "制度条件の誤りと不十分な回答"
+    },
+    {
+      "id": "gold-20",
+      "query": "特定入所者介護サービス費の対象になりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "具体的な条件説明が不足"
+    },
+    {
+      "id": "gold-24",
+      "query": "入浴介助加算IとIIの違いと算定要件を教えて",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "具体的要件の説明が不足"
+    },
+    {
+      "id": "gold-25",
+      "query": "処遇改善加算の算定区分を計算してください",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "具体的な計算方法が不足"
+    },
+    {
+      "id": "gold-26",
+      "query": "支給限度額を超えた分の自己負担はいくらになりますか",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "具体的な計算方法が不足"
+    },
+    {
+      "id": "gold-27",
+      "query": "介護保険法第8条の解釈を述べよ",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "第8条の内容誤り"
+    },
+    {
+      "id": "gold-28",
+      "query": "高額介護サービス費の上限はどう判定されますか",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "詳細な説明が不足している"
+    },
+    {
+      "id": "gold-30",
+      "query": "看取り介護加算の算定要件を満たすか確認したい",
+      "old_good": false,
+      "new_good": false,
+      "new_reason": "具体的な要件に答えていない"
+    },
+    {
+      "id": "gold-32",
+      "query": "医療費控除の対象になる介護サービスを教えてください",
+      "old_good": false,
+      "new_good": true,
+      "new_reason": "医療費控除対象を正確に説明"
+    },
+    {
+      "id": "gold-33",
+      "query": "限度額管理期間をまたぐ場合の利用回数の考え方は？",
+      "old_good": false,
+      "new_good": true,
+      "new_reason": "限度額の説明が正確"
+    }
+  ]
+}

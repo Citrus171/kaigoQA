@@ -1,0 +1,219 @@
+import { describe, it, expect } from "vitest";
+import { generalAnswer, domainAnswer } from "../src/routes/ai";
+import type { InferProvider } from "../src/lib/inference";
+import type { RetrievedChunk } from "../src/lib/rag";
+import { CONSTANTS_TEXT, KNOWLEDGE_QA_SYSTEM } from "../src/lib/capability-router";
+import { AI_DISCLAIMER } from "../src/lib/guardrail";
+
+// provider をネット非依存の fake に差し替え、infer の呼び出し(prompt/system)を記録する。
+// reply は prompt に応じて応答を返す（domainAnswer は分類と生成で同じ cloud を2回呼ぶため）。
+function fakeProvider(
+  name: string,
+  reply: (prompt: string, system?: string) => { text: string; confidence: number },
+) {
+  const calls: { prompt: string; system?: string }[] = [];
+  const provider: InferProvider = {
+    name,
+    async infer(prompt, system) {
+      calls.push({ prompt, system });
+      return reply(prompt, system);
+    },
+  };
+  return { provider, calls };
+}
+
+const hits: RetrievedChunk[] = [
+  { srcId: "doc-1", text: "要介護2の区分支給限度基準額は19,705単位/月です。", score: 0.71 },
+  { srcId: "doc-2", text: "デイサービスの単位数は提供時間で異なります。", score: 0.66 },
+];
+
+// classifyRoute は分類器プロンプト(「…ルーターです」)を system なしで呼ぶ。生成は system 付き。
+const isClassifierCall = (prompt: string) => prompt.includes("ルーターです");
+
+describe("domainAnswer: ドメイン内(RAG)の route 別生成 + edge cascade", () => {
+  it("escalate: cloud で guardrail プロンプト(制度定数)生成。edge は呼ばず最初から cloud", async () => {
+    const { provider: cloud, calls } = fakeProvider("opencode:test", (prompt) =>
+      isClassifierCall(prompt)
+        ? { text: '{"route":"escalate","reason":"個別の金額算定"}', confidence: 1 }
+        : { text: "手順と制度の枠組みを説明します。", confidence: 0.8 },
+    );
+    const { provider: edge, calls: edgeCalls } = fakeProvider("workersai:gemma", () => ({
+      text: "使われないはず",
+      confidence: 0.7,
+    }));
+
+    const r = await domainAnswer("母は要介護2、毎月いくら払いますか", hits, edge, cloud);
+
+    expect(r.route).toBe("escalate");
+    expect(r.routeReason).toBe("個別の金額算定");
+    expect(r.tier).toBe("cloud");
+    expect(r.confidence).toBe(0.8);
+    expect(edgeCalls).toHaveLength(0); // escalate は edge を使わない(数値捏造抑止の意図的エスカレ)
+    // 生成呼び出し(2回目)の system に escalate 専用の制度定数ブロックが入っている。
+    expect(calls[1]?.system).toContain(CONSTANTS_TEXT);
+    // RAG 出典が付与され、escalate は意図的エスカレーションとして記録される。
+    expect(r.sources.map((s) => s.srcId)).toEqual(["doc-1", "doc-2"]);
+    expect(r.safety.escalatedByGuardrail).toBe(true);
+    expect(r.safety.reasons.length).toBeGreaterThan(0);
+    expect(r.answer).toContain(AI_DISCLAIMER);
+  });
+
+  it("knowledge_qa + edge 自信あり + 危険なし → edge+RAG(V2) で確定(cloud は分類のみ)", async () => {
+    const { provider: cloud, calls: cloudCalls } = fakeProvider("opencode:test", (prompt) =>
+      isClassifierCall(prompt)
+        ? { text: '{"route":"knowledge_qa","reason":"制度説明"}', confidence: 1 }
+        : { text: "クラウド回答(使われないはず)", confidence: 0.8 },
+    );
+    const { provider: edge, calls: edgeCalls } = fakeProvider("workersai:gemma", () => ({
+      text: "自己負担割合は所得に応じて1〜3割で決まります。",
+      confidence: 0.7,
+    }));
+
+    const r = await domainAnswer("自己負担割合はどう決まりますか", hits, edge, cloud);
+
+    expect(r.route).toBe("knowledge_qa");
+    expect(r.tier).toBe("edge");
+    expect(r.model).toBe("workersai:gemma");
+    expect(r.confidence).toBe(0.7);
+    // edge 生成は V2(KNOWLEDGE_QA_SYSTEM)を system に受け、escalate 用の制度定数は含まない。
+    expect(edgeCalls[0]?.system?.startsWith(KNOWLEDGE_QA_SYSTEM)).toBe(true);
+    expect(edgeCalls[0]?.system).not.toContain(CONSTANTS_TEXT);
+    // cloud は分類のみ。生成にはエスカレーションしていない。
+    expect(cloudCalls).toHaveLength(1);
+    expect(isClassifierCall(cloudCalls[0]!.prompt)).toBe(true);
+    expect(r.safety.escalatedByGuardrail).toBe(false);
+    expect(r.safety.reasons).toEqual([]);
+    expect(r.sources).toHaveLength(2);
+    expect(r.answer).toContain(AI_DISCLAIMER);
+  });
+
+  it("knowledge_qa + edge 退化(空応答 confidence0) → cloud へ fallback", async () => {
+    const { provider: cloud, calls: cloudCalls } = fakeProvider("opencode:test", (prompt) =>
+      isClassifierCall(prompt)
+        ? { text: '{"route":"knowledge_qa","reason":"制度説明"}', confidence: 1 }
+        : { text: "クラウドの詳しい回答です。", confidence: 0.8 },
+    );
+    const { provider: edge } = fakeProvider("workersai:gemma", () => ({
+      text: "", // 退化出力 → outputConfidence=0 で閾値割れ
+      confidence: 0,
+    }));
+
+    const r = await domainAnswer("自己負担割合はどう決まりますか", hits, edge, cloud);
+
+    expect(r.tier).toBe("cloud");
+    expect(r.model).toBe("opencode:test");
+    expect(r.confidence).toBe(0.8);
+    expect(cloudCalls).toHaveLength(2); // 分類 + 生成
+    expect(cloudCalls[1]?.system?.startsWith(KNOWLEDGE_QA_SYSTEM)).toBe(true);
+    expect(r.safety.escalatedByGuardrail).toBe(false); // 退化は guardrail 起因ではない
+    expect(r.sources).toHaveLength(2);
+  });
+
+  it("knowledge_qa + edge が危険な断定 → 破棄して cloud、guardrail 理由を記録", async () => {
+    const { provider: cloud, calls: cloudCalls } = fakeProvider("opencode:test", (prompt) =>
+      isClassifierCall(prompt)
+        ? { text: '{"route":"knowledge_qa","reason":"制度説明"}', confidence: 1 }
+        : { text: "安全なクラウド回答です。", confidence: 0.8 },
+    );
+    const { provider: edge } = fakeProvider("workersai:gemma", () => ({
+      text: "それは違法です。", // 法令断定 → guardrail risky。confidence は高いが採用しない
+      confidence: 0.7,
+    }));
+
+    const r = await domainAnswer("生活保護受給中でも使えますか", hits, edge, cloud);
+
+    expect(r.tier).toBe("cloud");
+    expect(cloudCalls).toHaveLength(2); // 分類 + fallback 生成
+    expect(r.safety.escalatedByGuardrail).toBe(true);
+    expect(r.safety.reasons).toContain("legal:legality");
+  });
+
+  it("sources の excerpt は空白正規化のうえ120字に丸める", async () => {
+    const longHits: RetrievedChunk[] = [
+      { srcId: "long", text: "あ　".repeat(200), score: 0.7 },
+    ];
+    const { provider: cloud } = fakeProvider("opencode:test", (prompt) =>
+      isClassifierCall(prompt)
+        ? { text: '{"route":"knowledge_qa","reason":"r"}', confidence: 1 }
+        : { text: "クラウド", confidence: 0.8 },
+    );
+    const { provider: edge } = fakeProvider("workersai:gemma", () => ({
+      text: "回答します。",
+      confidence: 0.7,
+    }));
+
+    const r = await domainAnswer("質問", longHits, edge, cloud);
+
+    expect(r.sources[0]!.excerpt.length).toBe(120);
+    expect(r.sources[0]!.excerpt).not.toContain("　"); // 全角空白は単一スペースへ正規化
+  });
+});
+
+describe("generalAnswer: ドメイン外(RAGなし edge↔cloud)", () => {
+  // edge は呼ばれないことの検証用に、呼ばれたら例外的に分かる応答を返す。
+  const cloudOnly = () =>
+    fakeProvider("opencode:test", () => ({ text: "クラウド回答", confidence: 0.8 }));
+
+  it("simple + edge 自信あり + 危険なし → edge で完結(sources空)", async () => {
+    const { provider: edge } = fakeProvider("workersai:gemma", () => ({
+      text: "一般的なご質問にお答えします。",
+      confidence: 0.9,
+    }));
+    const { provider: cloud, calls: cloudCalls } = cloudOnly();
+
+    const r = await generalAnswer("おすすめの本は何ですか", edge, cloud);
+
+    expect(r.route).toBe("general");
+    expect(r.tier).toBe("edge");
+    expect(r.confidence).toBe(0.9);
+    expect(r.model).toBe("workersai:gemma");
+    expect(r.sources).toEqual([]);
+    expect(cloudCalls).toHaveLength(0); // cloud にエスカレーションしていない
+    expect(r.answer).toContain(AI_DISCLAIMER);
+  });
+
+  it("simple + edge 自信不足 → cloud へエスカレーション", async () => {
+    const { provider: edge } = fakeProvider("workersai:gemma", () => ({
+      text: "わかりません",
+      confidence: 0.3,
+    }));
+    const { provider: cloud, calls: cloudCalls } = cloudOnly();
+
+    const r = await generalAnswer("曖昧な質問", edge, cloud);
+
+    expect(r.tier).toBe("cloud");
+    expect(r.model).toBe("opencode:test");
+    expect(cloudCalls).toHaveLength(1);
+    expect(r.safety.escalatedByGuardrail).toBe(false);
+  });
+
+  it("simple + edge が危険な断定 → 破棄して cloud へ、guardrail 理由を記録", async () => {
+    const { provider: edge } = fakeProvider("workersai:gemma", () => ({
+      text: "それは違法です。",
+      confidence: 0.95, // 自信は高いが危険な断定なので採用しない
+    }));
+    const { provider: cloud, calls: cloudCalls } = cloudOnly();
+
+    // 質問自体は無害・simple。edge(fake) が危険な断定を返すケースを検証する。
+    const r = await generalAnswer("あなたの感想を教えて", edge, cloud);
+
+    expect(r.tier).toBe("cloud");
+    expect(cloudCalls).toHaveLength(1);
+    expect(r.safety.escalatedByGuardrail).toBe(true);
+    expect(r.safety.reasons).toContain("legal:legality");
+  });
+
+  it("complex(キーワード) → edge を飛ばして直接 cloud", async () => {
+    const { provider: edge, calls: edgeCalls } = fakeProvider("workersai:gemma", () => ({
+      text: "使われないはず",
+      confidence: 0.9,
+    }));
+    const { provider: cloud, calls: cloudCalls } = cloudOnly();
+
+    const r = await generalAnswer("確定申告の税金計算を手伝って", edge, cloud);
+
+    expect(r.tier).toBe("cloud");
+    expect(edgeCalls).toHaveLength(0); // edge は一度も呼ばれない
+    expect(cloudCalls).toHaveLength(1);
+  });
+});

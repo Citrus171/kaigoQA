@@ -5,6 +5,72 @@
 
 > 詳細な設計判断・進捗・ハマり所は **`PROGRESS.md`**（一次情報）。
 
+---
+
+## AIルーティングPoC（介護保険QA）— Evaluation-driven RAG engineering
+
+介護保険QAを題材に、**RAGの品質を評価し、故障を切り分け、評価結果からアーキテクチャを変更する**までを実装した PoC。
+「RAGを作る」ではなく **評価基盤 → 故障分析 → ルート設計 → ガードレール → 構造化ログ** の流れが主眼。
+
+### Architecture
+
+```
+User Query  (POST /ai/qa ― 単一エンドポイント)
+    │
+    ▼
+RAG 検索 → top-1 score でドメイン判定 (θ=0.5)
+    ├─ score < θ : general（介護保険ドメイン外）
+    │                └─ edge(Gemma 4)↔cloud ルーティング（RAGなし）
+    └─ score ≥ θ : Capability Router (LLM分類器, 分類精度 98.5%)
+                     ├─ knowledge_qa → edge(Gemma 4)+RAG 一次生成
+                     │                  └─ 退化/危険断定を検知したら cloud へ fallback（cascade）
+                     └─ escalation   → cloud guarded response
+                                       （数値の捏造を抑止し「手順＋制度定数＋ケアマネ誘導」へ）
+```
+
+設計判断の核心: 評価データ（gold）が「計算系質問は決定論的単一解を持たない」ことを示したため、
+当初想定の *Tool route（決定論計算）* を**廃止**し、escalation guardrail に置き換えた（データ駆動の設計変更）。
+
+### Evaluation Pipeline
+
+```
+Gold Dataset (135件, 5カテゴリ, referencePoints付き)
+    ▼
+Oracle RAG ……… retrieval不足 / generation不足 を分離
+    ▼
+LLM Judge (relaxed=正規KPI / strict=副軸)
+    ▼
+Failure Analysis (missing / omitted / misinterpreted / factual / overreach)
+    ▼
+Router Design (評価結果→route分岐＋route適応生成)
+```
+
+### Results (relaxed KPI)
+
+```
+88.1%  →  92.6%  →  94.1%
+top-1     top-3      Capability Router
+          (retrieval) (omitted/factual を route で解消, 回帰0)
+```
+
+- 詳細レポート: **[`apps/api/eval/PHASE1-EVAL-REPORT.md`](apps/api/eval/PHASE1-EVAL-REPORT.md)**（評価基盤・故障分離）
+- ルーター評価: **[`apps/api/eval/out/42-router.md`](apps/api/eval/out/42-router.md)**（分類精度・before/after・設計反復）
+- 再現コード/ログ: `apps/api/eval/out34-*.py`〜`out42-router.py` / `apps/api/eval/data/rag-router-log.jsonl`
+
+### Edge+RAG tier（評価が導いた段階追加）
+
+`knowledge_qa` を当初 cloud 生成にしていたが、評価が **edge SLM(Gemma 4) でも品質が足りる**ことを示したため、edge 一次生成へ切り替えた（cascade）。コスト/レイテンシを下げつつ品質を維持する判断を、課金ゼロの事前検証で裏付けてから実装している。
+
+- **品質（同一基盤・gold-a 41件）**: edge(Gemma 4, thinking off) **90.2% good** ＞ cloud(deepseek-v4-flash) 85.4%。空答 0%。
+- **実装前シミュレーション**: 既存の評価答案に cascade ロジックを当て、cloud fallback が発生しないこと（fallback 0%）を**課金ゼロで事前確認**してから実装。
+- **本番フロー実測（41件）**: 全件 edge 確定・fallback 0%・空答 0% で、シミュレーションの予測を実機で再現。
+- **経路忠実性（judge検証）**: 本番フロー答案を out/44 と同一の LLM judge(gpt-4o・全 referencePoints 統一) で採点し **90.2% = eval 経路 90.2%（差 0pt）**。本番 `/ai/qa` 配線が評価スクリプトと同等品質の答案を生成することを確認（`eval/out/47`）。
+- **latency**: edge 生成自体は **〜0.9s**（RAGなし general 経路で実測）。一方 `knowledge_qa` は **p50 4.4s** で、律速は **LLM 分類器(Capability Router)の cloud 往復**であり edge 生成ではない。→ 次の最適化候補は分類の脱 cloud 化（edge 分類／ヒューリスティック判定）。
+
+> cascade の安全網: edge 出力に医療/法令の危険断定 or 退化（空・極短）を検知したら cloud へ fallback する（品質より安全を優先する意図的エスカレーション）。
+
+---
+
 ## 構成（npm workspaces）
 
 ```
