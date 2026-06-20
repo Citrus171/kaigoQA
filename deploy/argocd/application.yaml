@@ -3,14 +3,6 @@ kind: Application
 metadata:
   name: kaigo
   namespace: argocd
-  annotations:
-    # GHCR の :dev digest 変化を検知し、live Application の kustomize image を上書き(write-back=argocd既定)。
-    argocd-image-updater.argoproj.io/image-list: api=ghcr.io/citrus171/kaigo-api:dev, web=ghcr.io/citrus171/kaigo-web:dev
-    argocd-image-updater.argoproj.io/api.update-strategy: digest
-    argocd-image-updater.argoproj.io/web.update-strategy: digest
-    # kustomize image 名(エイリアスと異なる)への対応付け。
-    argocd-image-updater.argoproj.io/api.kustomize.image-name: ghcr.io/citrus171/kaigo-api
-    argocd-image-updater.argoproj.io/web.kustomize.image-name: ghcr.io/citrus171/kaigo-web
 spec:
   project: default
   source:
