@@ -15,13 +15,16 @@
 ### Architecture
 
 ```
-User Query
+User Query  (POST /ai/qa ― 単一エンドポイント)
     │
     ▼
-Capability Router (LLM分類器, 分類精度 98.5%)
-    ├─ knowledge_qa → RAG (top-3 retrieval + 生成)
-    └─ escalation   → guarded response
-                      （数値の捏造を抑止し「手順＋制度定数＋ケアマネ誘導」へ）
+RAG 検索 → top-1 score でドメイン判定 (θ=0.5)
+    ├─ score < θ : general（介護保険ドメイン外）
+    │                └─ edge(Gemma 4)↔cloud ルーティング（RAGなし）
+    └─ score ≥ θ : Capability Router (LLM分類器, 分類精度 98.5%)
+                     ├─ knowledge_qa → RAG (top-3 retrieval + 生成)
+                     └─ escalation   → guarded response
+                                       （数値の捏造を抑止し「手順＋制度定数＋ケアマネ誘導」へ）
 ```
 
 設計判断の核心: 評価データ（gold）が「計算系質問は決定論的単一解を持たない」ことを示したため、

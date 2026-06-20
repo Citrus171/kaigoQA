@@ -1,19 +1,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { aiAskSchema, aiQaSchema } from "@/lib/schemas";
+import { aiQaSchema } from "@/lib/schemas";
 import { authMiddleware } from "@/auth/middleware";
 import { classifyComplexity } from "@/lib/classify";
 import { classifyRoute, buildSystemPrompt } from "@/lib/capability-router";
-import { retrieveTopK, RETRIEVAL_K } from "@/lib/rag";
-import { getRoutingClassifier, routerInfo } from "@/lib/routing";
-import type { RoutingDecision } from "@/lib/routing-model";
-import { queryRef } from "@/lib/routing-observability";
-import {
-  detectRiskyAssertion,
-  withDisclaimer,
-  type GuardrailResult,
-} from "@/lib/guardrail";
+import { retrieveTopK, RETRIEVAL_K, type RetrievedChunk } from "@/lib/rag";
+import { detectRiskyAssertion, withDisclaimer } from "@/lib/guardrail";
 import {
   InferenceError,
   OllamaProvider,
@@ -22,219 +15,136 @@ import {
   type InferProvider,
 } from "@/lib/inference";
 import type { AppEnv } from "@/types";
-import type { AiAnswer, AiTier, AiQaAnswer } from "@hybrid/shared";
+import type { AiQaAnswer, AiTier, AiRoute, AiSource } from "@hybrid/shared";
+
+// ドメイン足切り閾値（θ）。top-1 retrieval score がこれ未満なら介護保険ドメイン外。
+// 実測（scripts/measure-domain-threshold.ts）: ドメイン内 0.65〜0.72 / 外 0.32〜0.39 → 中点を丸めて 0.5。
+const RAG_DOMAIN_THRESHOLD = 0.5;
 
 // edge SLM が自信を持てる下限。これ未満なら cloud へエスカレーション。
 const EDGE_CONFIDENCE_THRESHOLD = 0.6;
 
-// 段1ルータの選択。"classifier"=セントロイド分類器(要embedding)、それ以外=rule-base。
-// 既定はrule-base（既存挙動・prod/テストに無影響）。classifier は当面 dev のみ。
-const USE_CLASSIFIER = (process.env.AI_ROUTER ?? "rule") === "classifier";
-
-/**
- * edge(SLM) プロバイダを選ぶ。
- * 既定 = Workers AI Gemma 4 26B A4B（GPU上で動く本命。dev/prod とも HTTP で到達可）。
- * `AI_EDGE_PROVIDER=ollama` でローカル Ollama に切替（オフライン開発・CF課金回避用）。
- */
-function pickEdge(_c: unknown): InferProvider {
-  const provider = process.env.AI_EDGE_PROVIDER ?? "workersai";
-  if (provider === "ollama") return new OllamaProvider();
-  return new WorkersAiProvider();
+// edge(SLM) プロバイダ。既定=Workers AI Gemma4 26B A4B。AI_EDGE_PROVIDER=ollama でローカル切替。
+function pickEdge(): InferProvider {
+  return process.env.AI_EDGE_PROVIDER === "ollama"
+    ? new OllamaProvider()
+    : new WorkersAiProvider();
 }
 
-// 段1: edge/cloud の事前判定。classifier 有効時は成果物(current.json)ベースの分類器、
-// 失敗時/無効時は rule-base にフォールバック（グレースフル）。
-// 埋め込みモデルは成果物の embedModel に従う（routing.ts が解決）。prod 埋め込みは将来注入。
-async function preRoute(
-  prompt: string,
-): Promise<{ tier: AiTier; stage1: RoutingDecision["stage1"] }> {
-  if (USE_CLASSIFIER) {
-    try {
-      const r = await getRoutingClassifier().classify(prompt);
-      return {
-        tier: r.tier,
-        stage1: {
-          method: "classifier",
-          score: r.score,
-          threshold: r.threshold,
-          margin: r.score - r.threshold,
-          simCloud: r.simCloud,
-          simEdge: r.simEdge,
-        },
-      };
-    } catch {
-      // 埋め込み不通・次元不一致でも応答を止めない。rule-base へ退避。
-    }
-  }
-  const tier = classifyComplexity(prompt) === "complex" ? "cloud" : "edge";
+// 応答を組み立てる単一の出口。免責文(Layer2 ガードレール)を常時付与する。
+function finalize(opts: {
+  text: string;
+  tier: AiTier;
+  route: AiRoute;
+  routeReason: string;
+  confidence: number;
+  model: string;
+  sources: AiSource[];
+  escalatedByGuardrail?: boolean;
+  reasons?: string[];
+}): AiQaAnswer {
   return {
-    tier,
-    stage1: {
-      method: "rule",
-      score: null,
-      threshold: null,
-      margin: null,
-      simCloud: null,
-      simEdge: null,
-    },
-  };
-}
-
-// 応答を組み立てる単一の出口。Layer2 ガードレール（免責文を常時付与）をここで一元適用。
-function finalize(
-  text: string,
-  tier: AiTier,
-  confidence: number,
-  model: string,
-  guardrail?: GuardrailResult,
-): AiAnswer {
-  return {
-    answer: withDisclaimer(text),
-    tier,
-    confidence,
-    model,
+    answer: withDisclaimer(opts.text),
+    tier: opts.tier,
+    route: opts.route,
+    routeReason: opts.routeReason,
+    confidence: opts.confidence,
+    model: opts.model,
+    sources: opts.sources,
     safety: {
       disclaimer: true,
-      escalatedByGuardrail: guardrail?.risky ?? false,
-      reasons: guardrail?.reasons ?? [],
+      escalatedByGuardrail: opts.escalatedByGuardrail ?? false,
+      reasons: opts.reasons ?? [],
     },
   };
 }
 
-// hc 型推論のためチェーンで定義。要認証（JWT middleware）。
+// ドメイン外(general): RAG を使わず edge↔cloud で回答（フェーズ1のルーティング）。
+// 簡単なら edge SLM で完結、複雑/自信不足/医療・法令の断定検知なら cloud へ。
+export async function generalAnswer(
+  question: string,
+  edge: InferProvider,
+  cloud: InferProvider,
+): Promise<AiQaAnswer> {
+  const base = {
+    route: "general" as const,
+    routeReason: "介護保険ドメイン外",
+    sources: [] as AiSource[],
+  };
+  // 明らかに重い質問は edge を飛ばして cloud。
+  if (classifyComplexity(question) === "complex") {
+    const r = await cloud.infer(question);
+    return finalize({ ...base, text: r.text, tier: "cloud", confidence: r.confidence, model: cloud.name });
+  }
+  // edge 一次応答。自信があり危険な断定がなければ採用。
+  const slm = await edge.infer(question);
+  const guard = detectRiskyAssertion(slm.text);
+  if (slm.confidence >= EDGE_CONFIDENCE_THRESHOLD && !guard.risky) {
+    return finalize({ ...base, text: slm.text, tier: "edge", confidence: slm.confidence, model: edge.name });
+  }
+  // 自信不足 or 危険な断定 → cloud へエスカレーション。
+  const r = await cloud.infer(question);
+  return finalize({
+    ...base,
+    text: r.text,
+    tier: "cloud",
+    confidence: r.confidence,
+    model: cloud.name,
+    escalatedByGuardrail: guard.risky,
+    reasons: guard.reasons,
+  });
+}
+
+// ドメイン内(knowledge_qa / escalate): RAG 検索結果を使い route 別 system prompt で cloud 生成。
+export async function domainAnswer(
+  question: string,
+  hits: RetrievedChunk[],
+  cloud: InferProvider,
+): Promise<AiQaAnswer> {
+  const decision = await classifyRoute(question, cloud);
+  const system = buildSystemPrompt(decision.route, hits.map((h) => h.text));
+  const r = await cloud.infer(question, system);
+  return finalize({
+    text: r.text,
+    tier: "cloud",
+    route: decision.route,
+    routeReason: decision.reason,
+    confidence: r.confidence,
+    model: cloud.name,
+    sources: hits.map((h) => ({
+      srcId: h.srcId,
+      score: h.score,
+      excerpt: h.text.replace(/\s+/g, " ").slice(0, 120),
+    })),
+    // escalate は数値捏造抑止のための意図的エスカレーション。
+    escalatedByGuardrail: decision.route === "escalate",
+    reasons:
+      decision.route === "escalate"
+        ? ["個別ケースの数値結果は一意に確定しないため guardrail 生成"]
+        : [],
+  });
+}
+
+// 統合 AI 入口。要認証(JWT)。hc 型推論のためチェーンで定義。
+//   段1: RAG 検索 → top-1 score でドメイン内/外を判定
+//   段2: ドメイン外 = edge↔cloud（RAGなし） / ドメイン内 = Capability Router + RAG（cloud）
 export const aiRoutes = new Hono<AppEnv>()
   .use("*", authMiddleware)
-  .post("/ask", zValidator("json", aiAskSchema), async (c) => {
-    const { prompt } = c.req.valid("json");
-    const edge = pickEdge(c);
-    const cloud = new OpenCodeProvider();
-
-    // Router Observability: 判定理由・latency を fire-and-forget で記録（分岐は不変）。
-    const logger = c.get("routingLogger");
-    const reqId = crypto.randomUUID();
-    const t0 = Date.now();
-    const pre = await preRoute(prompt);
-    const embedMs = Date.now() - t0;
-    const emit = (
-      served: AiTier,
-      genMs: number,
-      stage2?: RoutingDecision["stage2"],
-    ) => {
-      void (async () => {
-        try {
-          logger.log({
-            reqId,
-            ts: Date.now(),
-            queryRef: await queryRef(prompt),
-            tier: pre.tier,
-            stage1: pre.stage1,
-            stage2,
-            served,
-            versions: {
-              embedModel: routerInfo.embedModel,
-              classifierVersion: routerInfo.classifierVersion,
-              genModel: served === "edge" ? edge.name : cloud.name,
-            },
-            latencyMs: { embed: embedMs, gen: genMs, total: Date.now() - t0 },
-          });
-        } catch {
-          // 観測は best-effort。失敗してもリクエストは止めない。
-        }
-      })();
-    };
-
-    try {
-      // 段1: edge/cloud 事前判定（分類器 or rule-base）。cloud なら SLM を飛ばす。
-      if (pre.tier === "cloud") {
-        const g0 = Date.now();
-        const r = await cloud.infer(prompt);
-        emit("cloud", Date.now() - g0);
-        return c.json(finalize(r.text, "cloud", r.confidence, cloud.name));
-      }
-
-      // 段2: SLM 一次応答 + 自信スコア。閾値以上なら Layer2 ガードレールへ。
-      const g0 = Date.now();
-      const slm = await edge.infer(prompt);
-      const genMs = Date.now() - g0;
-      if (slm.confidence >= EDGE_CONFIDENCE_THRESHOLD) {
-        // 出力ガードレール: 医療/法令の断定を検知したら edge 回答を破棄し cloud へ。
-        const guard = detectRiskyAssertion(slm.text);
-        if (!guard.risky) {
-          emit("edge", genMs, {
-            edgeConfidence: slm.confidence,
-            escalated: false,
-            guardrailEscalated: false,
-          });
-          return c.json(finalize(slm.text, "edge", slm.confidence, edge.name));
-        }
-        const r = await cloud.infer(prompt);
-        emit("cloud", Date.now() - g0, {
-          edgeConfidence: slm.confidence,
-          escalated: false,
-          guardrailEscalated: true,
-        });
-        return c.json(finalize(r.text, "cloud", r.confidence, cloud.name, guard));
-      }
-
-      // 自信不足 → cloud LLM へエスカレーション。
-      const r = await cloud.infer(prompt);
-      emit("cloud", Date.now() - g0, {
-        edgeConfidence: slm.confidence,
-        escalated: true,
-        guardrailEscalated: false,
-      });
-      return c.json(finalize(r.text, "cloud", r.confidence, cloud.name));
-    } catch (e) {
-      if (e instanceof InferenceError) {
-        // 推論バックエンド起因の失敗は 502（上流が不調）として返す。
-        throw new HTTPException(502, { message: e.message });
-      }
-      throw e;
-    }
-  })
-  // フェーズ2 Capability Router + RAG。介護保険QA を意図で2分し RAG で回答する。
-  //   knowledge_qa = 参考情報をそのまま使い数値も省略せず回答（V2 prompt）
-  //   escalate     = 個別ケースの数値結果は断定せず手順＋制度定数＋ケアマネ誘導（guardrail prompt）
-  // 生成は cloud(OpenCode)。検索は CF bge-m3 で corpus 成果物と空間一致。
   .post("/qa", zValidator("json", aiQaSchema), async (c) => {
     const { question } = c.req.valid("json");
+    const edge = pickEdge();
     const cloud = new OpenCodeProvider();
     try {
-      // 段1: 意図分類（knowledge_qa / escalate）。
-      const decision = await classifyRoute(question, cloud);
-      // 段2: RAG 検索（top-k）。corpus と同じ CF bge-m3 でクエリ埋め込み。
       const hits = await retrieveTopK(question, RETRIEVAL_K);
-      // 段3: route に応じた system prompt で cloud 生成。
-      const system = buildSystemPrompt(
-        decision.route,
-        hits.map((h) => h.text),
-      );
-      const r = await cloud.infer(question, system);
-
-      const body: AiQaAnswer = {
-        answer: withDisclaimer(r.text),
-        route: decision.route,
-        routeReason: decision.reason,
-        model: cloud.name,
-        sources: hits.map((h) => ({
-          srcId: h.srcId,
-          score: h.score,
-          // 出典は先頭120字の抜粋に留める（応答肥大化の抑制）。
-          excerpt: h.text.replace(/\s+/g, " ").slice(0, 120),
-        })),
-        safety: {
-          disclaimer: true,
-          // escalate は数値捏造抑止のための意図的エスカレーション。
-          escalatedByGuardrail: decision.route === "escalate",
-          reasons:
-            decision.route === "escalate"
-              ? ["個別ケースの数値結果は一意に確定しないため guardrail 生成"]
-              : [],
-        },
-      };
+      const topScore = hits[0]?.score ?? 0;
+      const body =
+        topScore < RAG_DOMAIN_THRESHOLD
+          ? await generalAnswer(question, edge, cloud)
+          : await domainAnswer(question, hits, cloud);
       return c.json(body);
     } catch (e) {
       if (e instanceof InferenceError) {
+        // 推論バックエンド起因の失敗は 502（上流が不調）として返す。
         throw new HTTPException(502, { message: e.message });
       }
       throw e;

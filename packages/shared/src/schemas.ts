@@ -19,15 +19,6 @@ export const setDoneSchema = z.object({
   done: z.boolean(),
 });
 
-// AIハイブリッドルーティング（SLM⇄LLM）のリクエスト。
-export const aiAskSchema = z.object({
-  prompt: z
-    .string()
-    .trim()
-    .min(1, "プロンプトは必須です")
-    .max(4000, "プロンプトは4000文字以内で入力してください"),
-});
-
 // 応答の tier: edge=ローカル/エッジSLMで完結, cloud=クラウドLLMへエスカレーション。
 export const aiTierSchema = z.enum(["edge", "cloud"]);
 
@@ -38,15 +29,7 @@ export const aiSafetySchema = z.object({
   reasons: z.array(z.string()),
 });
 
-export const aiAnswerSchema = z.object({
-  answer: z.string(),
-  tier: aiTierSchema,
-  confidence: z.number().min(0).max(1),
-  model: z.string(),
-  safety: aiSafetySchema,
-});
-
-// Capability Router（フェーズ2）の質問リクエスト。介護保険QA を RAG で答える。
+// 統合 AI 入口（/ai/qa）の質問リクエスト。ドメイン判定 → ルーティングで答える。
 export const aiQaSchema = z.object({
   question: z
     .string()
@@ -55,8 +38,11 @@ export const aiQaSchema = z.object({
     .max(4000, "質問は4000文字以内で入力してください"),
 });
 
-// Router の振り分け先: knowledge_qa=参考知識で回答 / escalate=個別ケースの数値結果(捏造抑止guardrail)。
-export const aiRouteSchema = z.enum(["knowledge_qa", "escalate"]);
+// Router の振り分け先:
+//   knowledge_qa = 介護保険ドメイン・参考知識で回答（RAG + cloud）
+//   escalate     = 個別ケースの数値結果（捏造抑止 guardrail + cloud）
+//   general      = ドメイン外（retrieval score 低）。RAG を使わず edge↔cloud で回答
+export const aiRouteSchema = z.enum(["knowledge_qa", "escalate", "general"]);
 
 // RAG で参照したコーパスチャンク（出典）。score はコサイン類似（正規化済み内積）。
 export const aiSourceSchema = z.object({
@@ -67,19 +53,21 @@ export const aiSourceSchema = z.object({
 
 export const aiQaAnswerSchema = z.object({
   answer: z.string(),
+  // tier=どこで生成したか（edge SLM / cloud LLM）, route=振り分け先, confidence=生成側の確信度。
+  tier: aiTierSchema,
   route: aiRouteSchema,
   routeReason: z.string(),
+  confidence: z.number().min(0).max(1),
   model: z.string(),
+  // sources=RAG 出典（general 経路は RAG を使わないため空配列）。
   sources: z.array(aiSourceSchema),
   safety: aiSafetySchema,
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateTodoInput = z.infer<typeof createTodoSchema>;
-export type AiAskInput = z.infer<typeof aiAskSchema>;
 export type AiTier = z.infer<typeof aiTierSchema>;
 export type AiSafety = z.infer<typeof aiSafetySchema>;
-export type AiAnswer = z.infer<typeof aiAnswerSchema>;
 export type AiQaInput = z.infer<typeof aiQaSchema>;
 export type AiRoute = z.infer<typeof aiRouteSchema>;
 export type AiSource = z.infer<typeof aiSourceSchema>;

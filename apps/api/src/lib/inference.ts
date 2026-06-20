@@ -5,7 +5,8 @@
 
 export interface InferProvider {
   readonly name: string;
-  infer(prompt: string): Promise<{ text: string; confidence: number }>;
+  // system は任意（RAG 生成では参考情報入りの system prompt を渡す。edge SLM 等は無視してよい）。
+  infer(prompt: string, system?: string): Promise<{ text: string; confidence: number }>;
 }
 
 export class InferenceError extends Error {
@@ -170,9 +171,10 @@ export class OpenCodeProvider implements InferProvider {
   constructor(
     private readonly key = process.env.OPENCODE_API_KEY,
     private readonly url = "https://opencode.ai/zen/go/v1/chat/completions",
-    // cloud生成 + LLM-as-Judge に使うモデル。env で上書き可（既定 deepseek-v4-pro）。
-    // 介護保険ドメインは事実正確性が最優先のため flash ではなく pro を既定とする。
-    private readonly model = process.env.OPENCODE_MODEL ?? "deepseek-v4-pro",
+    // cloud生成に使うモデル。env で上書き可（既定 deepseek-v4-flash）。
+    // eval（out/42 等）が flash で品質を実証済み（relaxed 94.1%）。本番も同一モデルに揃え、
+    // 評価値と運用を一致させる（pro へ戻すなら OPENCODE_MODEL=deepseek-v4-pro）。
+    private readonly model = process.env.OPENCODE_MODEL ?? "deepseek-v4-flash",
     // 応答が返らない1件で評価全体が無限停止するのを防ぐ。env で上書き可（既定60s）。
     private readonly timeoutMs = Number(process.env.OPENCODE_TIMEOUT_MS ?? 60000),
   ) {
@@ -180,7 +182,7 @@ export class OpenCodeProvider implements InferProvider {
   }
 
   // system は任意。RAG 生成（Capability Router）は参考情報入りの system prompt を渡す。
-  // 未指定なら従来どおり user メッセージのみ（/ai/ask のエスカレーションは無改修）。
+  // 未指定なら user メッセージのみ（分類器呼び出しや general 経路で使う）。
   async infer(prompt: string, system?: string) {
     if (!this.key) {
       throw new InferenceError(this.name, "OPENCODE_API_KEY が未設定です");
