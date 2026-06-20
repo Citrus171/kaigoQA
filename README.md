@@ -22,8 +22,9 @@ RAG 検索 → top-1 score でドメイン判定 (θ=0.5)
     ├─ score < θ : general（介護保険ドメイン外）
     │                └─ edge(Gemma 4)↔cloud ルーティング（RAGなし）
     └─ score ≥ θ : Capability Router (LLM分類器, 分類精度 98.5%)
-                     ├─ knowledge_qa → RAG (top-3 retrieval + 生成)
-                     └─ escalation   → guarded response
+                     ├─ knowledge_qa → edge(Gemma 4)+RAG 一次生成
+                     │                  └─ 退化/危険断定を検知したら cloud へ fallback（cascade）
+                     └─ escalation   → cloud guarded response
                                        （数値の捏造を抑止し「手順＋制度定数＋ケアマネ誘導」へ）
 ```
 
@@ -55,6 +56,17 @@ top-1     top-3      Capability Router
 - 詳細レポート: **[`apps/api/eval/PHASE1-EVAL-REPORT.md`](apps/api/eval/PHASE1-EVAL-REPORT.md)**（評価基盤・故障分離）
 - ルーター評価: **[`apps/api/eval/out/42-router.md`](apps/api/eval/out/42-router.md)**（分類精度・before/after・設計反復）
 - 再現コード/ログ: `apps/api/eval/out34-*.py`〜`out42-router.py` / `apps/api/eval/data/rag-router-log.jsonl`
+
+### Edge+RAG tier（評価が導いた段階追加）
+
+`knowledge_qa` を当初 cloud 生成にしていたが、評価が **edge SLM(Gemma 4) でも品質が足りる**ことを示したため、edge 一次生成へ切り替えた（cascade）。コスト/レイテンシを下げつつ品質を維持する判断を、課金ゼロの事前検証で裏付けてから実装している。
+
+- **品質（同一基盤・gold-a 41件）**: edge(Gemma 4, thinking off) **90.2% good** ＞ cloud(deepseek-v4-flash) 85.4%。空答 0%。
+- **実装前シミュレーション**: 既存の評価答案に cascade ロジックを当て、cloud fallback が発生しないこと（fallback 0%）を**課金ゼロで事前確認**してから実装。
+- **本番フロー実測（41件）**: 全件 edge 確定・fallback 0%・空答 0% で、シミュレーションの予測を実機で再現。
+- **latency**: edge 生成自体は **〜0.9s**（RAGなし general 経路で実測）。一方 `knowledge_qa` は **p50 4.4s** で、律速は **LLM 分類器(Capability Router)の cloud 往復**であり edge 生成ではない。→ 次の最適化候補は分類の脱 cloud 化（edge 分類／ヒューリスティック判定）。
+
+> cascade の安全網: edge 出力に医療/法令の危険断定 or 退化（空・極短）を検知したら cloud へ fallback する（品質より安全を優先する意図的エスカレーション）。
 
 ---
 

@@ -136,6 +136,19 @@ functest-hybrid/   (npm workspaces)
 - **⚠️ 正直な発見（動作点の問題）**: t*=-0.134 の (C) は **Recall94.1%だがPrecision61.5%（FP=10/17）**。挨拶3件含むedgeの6割をcloudへ過剰escalation。「Recall94.1% ✅」はprecision崩壊を隠していた。原因=(1)llama3.2:1b埋め込みの分離力不足 +(2)コスト比10:1がrecall優先で閾値を下げすぎ。OpenCode Goは定額で金銭損なしだがUX不合理（[[opencode-go-flat-rate-cost]]）。
 - 次候補: (a) **コスト比/動作点の再検討**（10:1見直し or 第2防衛線=段2confidenceで救済）/ (b) Step4 Shadow Mode（この過剰escalationを本番前に観測）/ (c) prod埋め込み(bge)で分離力改善＋再チューニング(parity) / (d) goldラベルの実務者レビュー。
 
+## AI入口の統合と edge+RAG tier（2026-06-20）
+
+> ブランチ `feat/ai-routing-poc-impl`。上記 2026-06-16 PoC から、評価（フェーズ1=RAG品質 / フェーズ2=Capability Router）を経て、エンドポイント統合と edge tier 追加まで実装。
+
+- **エンドポイント統合**: `/ai/ask` を廃止し **`POST /ai/qa` に一本化**。段1=RAG top-1 score でドメイン判定(θ=0.5)、ドメイン外=`generalAnswer`(edge↔cloud, RAGなし)、ドメイン内=`domainAnswer`(Capability Router + RAG)。
+- **Capability Router + RAG**: `knowledge_qa` / `escalate` に分類（精度 98.5%）し route 別生成。`escalate` は個別ケースの数値捏造を抑止する guardrail 生成（手順＋制度定数＋ケアマネ誘導）。
+- **edge+RAG tier（cascade）**:
+  - `WorkersAiProvider` を thinking off 化（`chat_template_kwargs:{enable_thinking:false}` / `max_tokens` 512）+ `infer(prompt, system?)` で RAG system を受け取り対応。
+  - `domainAnswer` の `knowledge_qa` を **edge(Gemma 4)+RAG 一次生成 → 退化(空・極短)/危険断定なら cloud fallback**。`escalate` は cloud 維持。
+  - 評価: edge 90.2% ＞ cloud flash 85.4%（同基盤・gold-a 41件・`eval/out/44`）/ 実装前シミュレーション fallback 0%（`eval/out/45`）/ 本番フロー41件実測も fallback 0%・空答 0%（`eval/out/46`）。
+- **テスト**: cascade 3分岐（edge確定 / 退化fallback / risky fallback）の関数単体（`test/ai-qa.test.ts`）+ `app.request("/ai/qa")` の routes 配線統合（`test/ai-qa-route.test.ts`、DB/CF 不要・モック注入で配線を検証）。計 40 件緑、typecheck(api+web) 緑。
+- **既知事項（最適化候補）**: `knowledge_qa` は edge 確定でも `classifyRoute` の cloud 往復が latency 律速（p50 4.4s、edge 生成自体は 〜0.9s）。分類の edge 化／ヒューリスティック化が次の改善対象。
+
 ## 関連
 
 - 設計の経緯: `functest-hono/memo.md`、メモリ `functest-variants.md` / `engineering-priority-authz-over-authn.md`
