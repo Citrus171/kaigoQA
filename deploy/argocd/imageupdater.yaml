@@ -1,0 +1,30 @@
+# argocd-image-updater v1.2.1(controller / CRD モード)用。
+# namePattern で Argo Application `kaigo` を照合し、GHCR の :dev タグの digest 変化を検知して
+# live Application の kustomize image を上書きする(write-back=argocd)。
+# ※ このクラスタの image-updater は annotation 方式ではなく ImageUpdater CR 方式。
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: kaigo
+  namespace: argocd
+spec:
+  applicationRefs:
+    - namePattern: kaigo
+      commonUpdateSettings:
+        updateStrategy: digest        # imageName の :dev タグの digest を追跡
+        platforms:
+          - linux/amd64
+      writeBackConfig:
+        method: argocd                # git 非commit。後続フェーズで git method へ昇格
+      images:
+        # digest 戦略はタグ(version constraint)を imageName に含める必要がある。
+        - alias: api
+          imageName: ghcr.io/citrus171/kaigo-api:dev
+          manifestTargets:
+            kustomize:
+              name: hybrid-api:dev    # overlay kustomization.yaml の images[].name キー
+        - alias: web
+          imageName: ghcr.io/citrus171/kaigo-web:dev
+          manifestTargets:
+            kustomize:
+              name: hybrid-web:dev

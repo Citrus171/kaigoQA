@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - configmap.yaml
-  - secret.example.yaml
+  # secret は git 管理外。hybrid-secret を ns へ手動適用する（REPLACE_ME を ArgoCD に同期させない）。
   - api-deployment.yaml
   - api-service.yaml
   - web-deployment.yaml
