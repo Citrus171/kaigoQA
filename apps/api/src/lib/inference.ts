@@ -50,7 +50,7 @@ export class OllamaProvider implements InferProvider {
     this.name = `ollama:${this.model}`;
   }
 
-  async infer(prompt: string) {
+  async infer(prompt: string, system?: string) {
     let res: Response;
     try {
       res = await fetch(`${this.url}/api/chat`, {
@@ -60,7 +60,7 @@ export class OllamaProvider implements InferProvider {
           model: this.model,
           stream: false,
           messages: [
-            { role: "system", content: EDGE_SYSTEM_PROMPT },
+            { role: "system", content: system ?? EDGE_SYSTEM_PROMPT },
             { role: "user", content: prompt },
           ],
         }),
@@ -94,15 +94,15 @@ export class WorkersAiProvider implements InferProvider {
     private readonly token = process.env.CF_API_TOKEN,
     private readonly model = process.env.WORKERS_AI_EDGE_MODEL ??
       "@cf/google/gemma-4-26b-a4b-it",
-    // thinking mode が reasoning にトークンを使うため content 用に余裕を持たせる（eval と統一）。
-    private readonly maxTokens = Number(process.env.WORKERS_AI_MAX_TOKENS ?? 2048),
+    // thinkOFF（enable_thinking:false）で content のみ生成するため 512 で足りる（eval out/44）。
+    private readonly maxTokens = Number(process.env.WORKERS_AI_MAX_TOKENS ?? 512),
     private readonly timeoutMs = Number(process.env.WORKERS_AI_TIMEOUT_MS ?? 120000),
   ) {
     this.name = `workersai:${this.model}`;
     this.url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/${this.model}`;
   }
 
-  async infer(prompt: string) {
+  async infer(prompt: string, system?: string) {
     if (!this.accountId || !this.token) {
       throw new InferenceError(
         this.name,
@@ -119,10 +119,12 @@ export class WorkersAiProvider implements InferProvider {
         },
         body: JSON.stringify({
           messages: [
-            { role: "system", content: EDGE_SYSTEM_PROMPT },
+            { role: "system", content: system ?? EDGE_SYSTEM_PROMPT },
             { role: "user", content: prompt },
           ],
           max_tokens: this.maxTokens,
+          // thinking を切り content のみ生成（latency 24s→1.7s・空答案 9.8%→0%。eval out/44）。
+          chat_template_kwargs: { enable_thinking: false },
         }),
         signal: AbortSignal.timeout(this.timeoutMs),
       });

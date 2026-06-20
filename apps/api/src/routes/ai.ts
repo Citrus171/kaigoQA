@@ -95,33 +95,64 @@ export async function generalAnswer(
   });
 }
 
-// ドメイン内(knowledge_qa / escalate): RAG 検索結果を使い route 別 system prompt で cloud 生成。
+// ドメイン内(knowledge_qa / escalate): RAG 検索結果を route 別 system prompt で生成する。
+//   - knowledge_qa: edge+RAG(V2) を一次生成し A方式 cascade。退化(confidence<閾値)でなく
+//     危険な断定もなければ edge で確定（eval out/44: 90.2% good / p50 1.7s、cloud 85.4% を上回る）。
+//     退化 or 危険断定なら cloud へ fallback。
+//   - escalate: 個別ケースの数値捏造を抑止する意図的エスカレーション → 最初から cloud。
 export async function domainAnswer(
   question: string,
   hits: RetrievedChunk[],
+  edge: InferProvider,
   cloud: InferProvider,
 ): Promise<AiQaAnswer> {
   const decision = await classifyRoute(question, cloud);
   const system = buildSystemPrompt(decision.route, hits.map((h) => h.text));
-  const r = await cloud.infer(question, system);
-  return finalize({
-    text: r.text,
-    tier: "cloud",
+  const base = {
     route: decision.route,
     routeReason: decision.reason,
-    confidence: r.confidence,
-    model: cloud.name,
     sources: hits.map((h) => ({
       srcId: h.srcId,
       score: h.score,
       excerpt: h.text.replace(/\s+/g, " ").slice(0, 120),
     })),
-    // escalate は数値捏造抑止のための意図的エスカレーション。
-    escalatedByGuardrail: decision.route === "escalate",
-    reasons:
-      decision.route === "escalate"
-        ? ["個別ケースの数値結果は一意に確定しないため guardrail 生成"]
-        : [],
+  };
+
+  if (decision.route === "escalate") {
+    const r = await cloud.infer(question, system);
+    return finalize({
+      ...base,
+      text: r.text,
+      tier: "cloud",
+      confidence: r.confidence,
+      model: cloud.name,
+      escalatedByGuardrail: true,
+      reasons: ["個別ケースの数値結果は一意に確定しないため guardrail 生成"],
+    });
+  }
+
+  // knowledge_qa: edge+RAG 一次生成 → A方式 cascade。
+  const slm = await edge.infer(question, system);
+  const guard = detectRiskyAssertion(slm.text);
+  if (slm.confidence >= EDGE_CONFIDENCE_THRESHOLD && !guard.risky) {
+    return finalize({
+      ...base,
+      text: slm.text,
+      tier: "edge",
+      confidence: slm.confidence,
+      model: edge.name,
+    });
+  }
+  // 退化 or 危険な断定 → cloud へ fallback。
+  const r = await cloud.infer(question, system);
+  return finalize({
+    ...base,
+    text: r.text,
+    tier: "cloud",
+    confidence: r.confidence,
+    model: cloud.name,
+    escalatedByGuardrail: guard.risky,
+    reasons: guard.reasons,
   });
 }
 
@@ -140,7 +171,7 @@ export const aiRoutes = new Hono<AppEnv>()
       const body =
         topScore < RAG_DOMAIN_THRESHOLD
           ? await generalAnswer(question, edge, cloud)
-          : await domainAnswer(question, hits, cloud);
+          : await domainAnswer(question, hits, edge, cloud);
       return c.json(body);
     } catch (e) {
       if (e instanceof InferenceError) {
