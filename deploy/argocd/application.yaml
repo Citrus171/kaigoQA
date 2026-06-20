@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kaigo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Citrus171/kaigoQA
+    targetRevision: feat/ai-routing-poc-impl
+    path: deploy/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kaigo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
