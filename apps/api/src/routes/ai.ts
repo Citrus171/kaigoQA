@@ -17,6 +17,9 @@ import {
 import type { AppEnv } from "@/types";
 import type { AiQaAnswer, AiTier, AiRoute, AiSource } from "@hybrid/shared";
 
+// handler が topScore/latencyMs を付与する前の本体。finalize/general/domain はこれを返す。
+type AiQaBody = Omit<AiQaAnswer, "topScore" | "latencyMs">;
+
 // ドメイン足切り閾値（θ）。top-1 retrieval score がこれ未満なら介護保険ドメイン外。
 // 実測（scripts/measure-domain-threshold.ts）: ドメイン内 0.65〜0.72 / 外 0.32〜0.39 → 中点を丸めて 0.5。
 const RAG_DOMAIN_THRESHOLD = 0.5;
@@ -42,7 +45,7 @@ function finalize(opts: {
   sources: AiSource[];
   escalatedByGuardrail?: boolean;
   reasons?: string[];
-}): AiQaAnswer {
+}): AiQaBody {
   return {
     answer: withDisclaimer(opts.text),
     tier: opts.tier,
@@ -65,7 +68,7 @@ export async function generalAnswer(
   question: string,
   edge: InferProvider,
   cloud: InferProvider,
-): Promise<AiQaAnswer> {
+): Promise<AiQaBody> {
   const base = {
     route: "general" as const,
     routeReason: "介護保険ドメイン外",
@@ -105,7 +108,7 @@ export async function domainAnswer(
   hits: RetrievedChunk[],
   edge: InferProvider,
   cloud: InferProvider,
-): Promise<AiQaAnswer> {
+): Promise<AiQaBody> {
   const decision = await classifyRoute(question, cloud);
   const system = buildSystemPrompt(decision.route, hits.map((h) => h.text));
   const base = {
@@ -162,6 +165,9 @@ export async function domainAnswer(
 export const aiRoutes = new Hono<AppEnv>()
   .use("*", authMiddleware)
   .post("/qa", zValidator("json", aiQaSchema), async (c) => {
+    // latencyMs 起点は handler 冒頭(embed=retrieveTopK の前)に置く。
+    // route 決定後に取ると検索(embed)時間が漏れ、真の応答時間にならない。
+    const startedAt = Date.now();
     const { question } = c.req.valid("json");
     const edge = pickEdge();
     const cloud = new OpenCodeProvider();
@@ -172,7 +178,7 @@ export const aiRoutes = new Hono<AppEnv>()
         topScore < RAG_DOMAIN_THRESHOLD
           ? await generalAnswer(question, edge, cloud)
           : await domainAnswer(question, hits, edge, cloud);
-      return c.json(body);
+      return c.json({ ...body, topScore, latencyMs: Date.now() - startedAt });
     } catch (e) {
       if (e instanceof InferenceError) {
         // 推論バックエンド起因の失敗は 502（上流が不調）として返す。
