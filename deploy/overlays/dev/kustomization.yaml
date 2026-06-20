@@ -8,10 +8,10 @@ resources:
 
 images:
   - name: hybrid-api:dev
-    newName: hybrid-api
+    newName: ghcr.io/citrus171/kaigo-api
     newTag: dev
   - name: hybrid-web:dev
-    newName: hybrid-web
+    newName: ghcr.io/citrus171/kaigo-web
     newTag: dev
 
 patches:
