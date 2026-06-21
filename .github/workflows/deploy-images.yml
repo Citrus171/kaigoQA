@@ -6,7 +6,7 @@ name: deploy-images
 
 on:
   push:
-    branches: [feat/ai-routing-poc-impl]
+    branches: [main]
     paths:
       - apps/**
       - packages/**

@@ -19,7 +19,7 @@ spec:
       writeBackConfig:
         method: git
         gitConfig:
-          branch: feat/ai-routing-poc-impl
+          branch: main
           # パスは Application の source.path(deploy/overlays/dev)起点の相対。
           # "." で同ディレクトリの kustomization.yaml を指す(絶対パスを書くと二重連結になる)。
           writeBackTarget: kustomization:.
