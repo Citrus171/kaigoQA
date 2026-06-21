@@ -20,6 +20,8 @@
     "db:push": "drizzle-kit push",
     "db:test:push": "DATABASE_URL=${TEST_DATABASE_URL:-postgresql://app:app@localhost:5435/functest_hono_test?schema=public} drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
+    "db:seed:rag": "tsx scripts/seed-rag.ts",
+    "verify:rag": "tsx scripts/verify-rag-parity.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "build:model": "tsx scripts/build-routing-model.ts",

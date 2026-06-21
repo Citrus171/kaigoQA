@@ -6,6 +6,7 @@ import {
   index,
   real,
   integer,
+  vector,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -71,7 +72,17 @@ export const routingDecisions = pgTable(
   ],
 );
 
-export const schema = { users, todos, routingDecisions };
+// RAG コーパスチャンク（pgvector）。build:rag の成果物を DB に永続化し、
+// retrieveTopK を JS 全件 cosine から pgvector <=> 演算に差し替える。
+//   - vector: bge-m3 1024次元・L2 正規化済み（cosine distance は正規化ベクトルで精度保証）。
+//   - srcId: corpus.json の gold-A-xxx 等。
+export const ragChunks = pgTable("rag_chunks", {
+  srcId: text("src_id").primaryKey(),
+  text: text("text").notNull(),
+  vector: vector("vector", { dimensions: 1024 }).notNull(),
+});
+
+export const schema = { users, todos, routingDecisions, ragChunks };
 
 // route 側は Postgres 共通のクエリ API しか使わないため、型は node 版に統一する
 // （neon-http 版は同じ PgDatabase API を持つのでこの型へキャストして渡す）。
