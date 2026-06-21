@@ -1,6 +1,7 @@
 # argocd-image-updater v1.2.1(controller / CRD モード)用。
-# namePattern で Argo Application `kaigo` を照合し、GHCR の :dev タグの digest 変化を検知して
-# live Application の kustomize image を上書きする(write-back=argocd)。
+# namePattern で Argo Application `kaigo` を照合し、GHCR の sha- タグ群から最新ビルドを選び、
+# overlay の kustomization.yaml へ git commit する(write-back=git)。
+# 認証は Argo CD の repository 認証情報(kaigoQA に登録した PAT)を再利用する。
 # ※ このクラスタの image-updater は annotation 方式ではなく ImageUpdater CR 方式。
 apiVersion: argocd-image-updater.argoproj.io/v1alpha1
 kind: ImageUpdater
@@ -11,20 +12,25 @@ spec:
   applicationRefs:
     - namePattern: kaigo
       commonUpdateSettings:
-        updateStrategy: digest        # imageName の :dev タグの digest を追跡
+        updateStrategy: newest-build   # sha- タグ群から最新ビルドを選択
+        allowTags: regexp:^sha-
         platforms:
           - linux/amd64
       writeBackConfig:
-        method: argocd                # git 非commit。後続フェーズで git method へ昇格
+        method: git
+        gitConfig:
+          branch: main
+          # パスは Application の source.path(deploy/overlays/dev)起点の相対。
+          # "." で同ディレクトリの kustomization.yaml を指す(絶対パスを書くと二重連結になる)。
+          writeBackTarget: kustomization:.
       images:
-        # digest 戦略はタグ(version constraint)を imageName に含める必要がある。
         - alias: api
-          imageName: ghcr.io/citrus171/kaigo-api:dev
+          imageName: ghcr.io/citrus171/kaigo-api
           manifestTargets:
             kustomize:
               name: hybrid-api:dev    # overlay kustomization.yaml の images[].name キー
         - alias: web
-          imageName: ghcr.io/citrus171/kaigo-web:dev
+          imageName: ghcr.io/citrus171/kaigo-web
           manifestTargets:
             kustomize:
               name: hybrid-web:dev

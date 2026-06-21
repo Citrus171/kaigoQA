@@ -14,7 +14,7 @@ import {
 } from "@/lib/routing-observability";
 
 /** 稼働中ビルドの識別子。/health で返し、デプロイ反映の確認に使う。 */
-const API_VERSION = "1";
+const API_VERSION = "2";
 
 /**
  * db と jwtSecret の解決方法を注入してアプリを組み立てる。
