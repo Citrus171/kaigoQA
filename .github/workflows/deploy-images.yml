@@ -46,6 +46,10 @@ jobs:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
           push: true
+          # GIT_SHA は api Dockerfile が ARG で受け、/health の version に焼き込む。
+          # web Dockerfile は未使用だが build-arg は無害。
+          build-args: |
+            GIT_SHA=${{ steps.vars.outputs.short }}
           tags: |
             ghcr.io/citrus171/kaigo-${{ matrix.app }}:dev
             ghcr.io/citrus171/kaigo-${{ matrix.app }}:sha-${{ steps.vars.outputs.short }}

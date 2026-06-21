@@ -18,6 +18,10 @@ RUN npm ci
 # --- runtime ---
 FROM base AS runtime
 ENV NODE_ENV=production
+# 稼働ビルド識別子。CI が --build-arg GIT_SHA=<short> を渡し、/health が返す（デプロイ反映確認用）。
+# build 時に焼き込む＝image に対し不変。未指定時は app 側で "dev" にフォールバック。
+ARG GIT_SHA
+ENV GIT_SHA=$GIT_SHA
 # --chown: リポジトリ側ファイルが group-only 権限のため、USER node が読めるよう所有者を移す
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node package.json package-lock.json ./
