@@ -13,9 +13,6 @@ import {
   type RoutingLogger,
 } from "@/lib/routing-observability";
 
-/** 稼働中ビルドの識別子。/health で返し、デプロイ反映の確認に使う。 */
-const API_VERSION = "2";
-
 /**
  * db と jwtSecret の解決方法を注入してアプリを組み立てる。
  * - Workers: c.env(バインディング)から解決（neon-http）
@@ -27,6 +24,12 @@ export type Resolvers = {
   getJwtSecret: (c: Context<AppEnv>) => string;
   // Router Observability ロガー（任意。未指定=no-op＝既存呼び出し/Workers/テストは無改修）。
   getRoutingLogger?: (c: Context<AppEnv>) => RoutingLogger;
+  // 稼働中ビルドの識別子（git short sha）。/health で返しデプロイ反映の確認に使う。
+  // Node entry が build 時の GIT_SHA を渡す。未指定時は "unknown"（下記 /health 参照）。
+  // 本番デプロイは必ず CI 経由＝GIT_SHA が焼かれるため、本番で version="unknown" は
+  // パイプライン外の手動デプロイ＝out-of-band 検知シグナル（監視アラート対象）。
+  // 可用性をこのラベルに紐付けない方針のため起動は失敗させない（"unknown" を返すだけ）。
+  version?: string;
 };
 
 export function createApp(resolvers: Resolvers) {
@@ -43,7 +46,7 @@ export function createApp(resolvers: Resolvers) {
     .get("/health", async (c) => {
       try {
         await c.get("db").execute(sql`select 1`);
-        return c.json({ status: "ok", db: "up", version: API_VERSION });
+        return c.json({ status: "ok", db: "up", version: resolvers.version ?? "unknown" });
       } catch {
         return c.json({ status: "error", db: "down" }, 503);
       }

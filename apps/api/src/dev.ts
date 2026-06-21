@@ -20,6 +20,8 @@ const app = createApp({
   getDb: () => db,
   getJwtSecret: () => jwtSecret,
   getRoutingLogger: () => routingLogger,
+  // ビルド時に焼き込んだ git short sha（Dockerfile の ARG/ENV GIT_SHA）。
+  version: process.env.GIT_SHA,
 });
 
 const port = Number(process.env.PORT ?? 8787);
