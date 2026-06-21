@@ -29,7 +29,7 @@ export default function LoginPage() {
       setError("メールアドレスまたはパスワードが違います");
       return;
     }
-    router.push("/todos");
+    router.push("/chat");
     router.refresh();
   });
 

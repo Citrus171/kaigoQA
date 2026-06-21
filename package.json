@@ -11,6 +11,7 @@
     "db:push": "npm run db:push -w @hybrid/api",
     "db:seed": "npm run db:seed -w @hybrid/api",
     "test:api": "npm run test -w @hybrid/api",
+    "test:e2e": "npm run test:e2e -w @hybrid/web",
     "typecheck": "npm run typecheck -w @hybrid/api && npm run typecheck -w @hybrid/web",
     "build:web": "npm run build -w @hybrid/web"
   }
