@@ -1,0 +1,33 @@
+# app-of-apps の親(root)Application。
+# deploy/argocd/children/ 配下のマニフェスト(kaigo アプリ App / ImageUpdater / argocd Ingress)を
+# Argo 管理下に置く。これにより children/* の変更は push(main)→ root が自動 sync で反映され、
+# 子リソースの手動 kubectl apply が不要になる(= GitOps コントローラ自身も GitOps 化)。
+#
+# ■ root.yaml は immutable 扱い(設計上の明示):
+#   この root 自身は app-of-apps の管理対象外(children/ に含めない=自己参照しない)。
+#   よって root.yaml の編集(children パス変更・syncPolicy 調整等)は「都度手動 apply」を許容する。
+#   「手動 apply ゼロ」は children に対する表現であり、root の bootstrap/更新は対象外。
+#   root を変えるのはクラスタ再構築レベルの稀事象で、通常は children だけを変更する運用。
+#
+# ■ bootstrap(1回だけ・原理的に消せない seed):
+#   kubectl apply -f deploy/argocd/root.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kaigo-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Citrus171/kaigoQA
+    targetRevision: main
+    path: deploy/argocd/children
+    directory:
+      recurse: false   # children/ は平坦。子 App/CR を直下に置く
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd   # 子(Application/ImageUpdater/IngressRoute)は argocd ns に作られる
+  syncPolicy:
+    automated:
+      prune: true       # children から削除した子リソースは prune(取り扱い注意)
+      selfHeal: true
