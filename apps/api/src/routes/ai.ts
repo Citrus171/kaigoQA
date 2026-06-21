@@ -172,7 +172,7 @@ export const aiRoutes = new Hono<AppEnv>()
     const edge = pickEdge();
     const cloud = new OpenCodeProvider();
     try {
-      const hits = await retrieveTopK(question, RETRIEVAL_K);
+      const hits = await retrieveTopK(c.get("db"), question, RETRIEVAL_K);
       const topScore = hits[0]?.score ?? 0;
       const body =
         topScore < RAG_DOMAIN_THRESHOLD

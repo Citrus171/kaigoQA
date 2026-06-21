@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgres:17-alpine
+    # pgvector を含む Postgres（vector 拡張つき）。RAG の埋め込みを pgvector で検索するため。
+    # pg16 系=既存 pg17 ボリュームとは非互換のため、切替時は volume 作り直し＋db:push/seed が必要。
+    image: pgvector/pgvector:pg16
     container_name: fh-db
     restart: unless-stopped
     environment:

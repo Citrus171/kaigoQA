@@ -1,3 +1,13 @@
+# 新規 PGDATA 初期化時に pgvector 拡張を有効化する（docker-entrypoint-initdb.d）。
+# RAG 検索(retrieveTopK)が rag_chunks の vector(<=>) を引くため拡張が必須。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+data:
+  01-vector.sql: |
+    CREATE EXTENSION IF NOT EXISTS vector;
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -17,7 +27,9 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:17-alpine
+          # pgvector 同梱イメージ（ローカル docker-compose と同一）。RAG 検索を pgvector で行う。
+          # pg17→pg16 は PGDATA 非互換のため、切替時は PVC を作り直して再 seed する。
+          image: pgvector/pgvector:pg16
           ports:
             - containerPort: 5432
           env:
@@ -50,6 +62,12 @@ spec:
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: initdb
+          configMap:
+            name: postgres-initdb
   volumeClaimTemplates:
     - metadata:
         name: pgdata
