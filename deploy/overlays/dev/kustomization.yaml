@@ -1,19 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 namespace: kaigo
-
 resources:
   - ../../base
-
 images:
   - name: hybrid-api:dev
     newName: ghcr.io/citrus171/kaigo-api
-    newTag: dev
+    newTag: sha-d032f9d
   - name: hybrid-web:dev
     newName: ghcr.io/citrus171/kaigo-web
-    newTag: dev
-
+    newTag: sha-d032f9d
 patches:
   - target:
       kind: Deployment
