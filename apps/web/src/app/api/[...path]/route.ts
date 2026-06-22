@@ -16,10 +16,15 @@ async function handler(
   const search = new URL(req.url).search;
   const target = `${API_ORIGIN}/${subPath}${search}`;
 
+  // X-Request-ID 伝播: 受信済みなら踏襲、無ければ採番。api 側観測行と突き合わせ可能にする。
+  const reqId = req.headers.get("X-Request-ID") ?? crypto.randomUUID();
+  const startedAt = Date.now();
+
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
 
   const headers = new Headers();
+  headers.set("X-Request-ID", reqId);
   const contentType = req.headers.get("content-type");
   if (contentType) headers.set("content-type", contentType);
   if (token) headers.set("authorization", `Bearer ${token}`);
@@ -30,6 +35,22 @@ async function handler(
       : await req.text();
 
   const res = await fetch(target, { method: req.method, headers, body });
+
+  // 構造化ログ1行（PII 非保持: cookie/クエリ本文は出さない）。best-effort。
+  try {
+    console.log(
+      JSON.stringify({
+        ts: startedAt,
+        reqId,
+        method: req.method,
+        path: subPath,
+        status: res.status,
+        durationMs: Date.now() - startedAt,
+      }),
+    );
+  } catch {
+    // ログ失敗でリクエストは止めない。
+  }
 
   // ログイン特例：トークンを cookie に隠す。
   if (subPath === "auth/login" && res.ok) {
