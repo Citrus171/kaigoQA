@@ -6,11 +6,21 @@
 // 埋め込みは Provider 抽象（EmbedProvider）で注入でき、prod(Workers AI binding) へ差し替え可能。
 //
 // 採用パラメータの根拠（eval out/41）: chunk 粒度=1質問1chunk連結, top-3 で top-1 gid 95.1% / top-3 採用。
+//
+// A1 hybrid: retrieveHybrid() で dense + BM25 を RRF 融合。
 
 import { sql } from "drizzle-orm";
 import type { DB } from "@/db/schema";
 import type { EmbedProvider } from "@/lib/embed";
 import { CfBgeM3EmbedProvider } from "@/lib/cf-embed";
+import {
+  DenseRetriever,
+  Bm25Retriever,
+  reciprocalRankFusion,
+  type Retriever,
+  type RerankProvider,
+} from "@/lib/retriever";
+import { loadBm25Docs } from "@/db/rag-chunks-loader";
 
 export type RetrievedChunk = {
   srcId: string;
@@ -18,8 +28,8 @@ export type RetrievedChunk = {
   score: number;
 };
 
-/** retrieval 既定 k（eval out/41 で確定）。 */
-export const RETRIEVAL_K = 3;
+/** retrieval 既定 k（real-query eval で @5=96.2% / @3=80.8% から 5 に変更）。 */
+export const RETRIEVAL_K = 5;
 
 /** コーパスの埋め込み次元（bge-m3）。クエリ次元の整合チェックに使う。 */
 const EMBED_DIM = 1024;
@@ -50,4 +60,65 @@ export async function retrieveTopK(
     LIMIT ${k}
   `);
   return result.rows as RetrievedChunk[];
+}
+
+// ---- A1 hybrid: dense + BM25 → RRF 融合 ----
+
+let hybridRetrieversCache: { dense: DenseRetriever; bm25: Bm25Retriever } | null = null;
+
+async function getHybridRetrievers(db: DB) {
+  if (!hybridRetrieversCache) {
+    const docs = await loadBm25Docs(db);
+    hybridRetrieversCache = {
+      dense: new DenseRetriever(db),
+      bm25: new Bm25Retriever(docs),
+    };
+  }
+  return hybridRetrieversCache;
+}
+
+/**
+ * dense(pgvector cosine) + BM25(kuromoji) の候補をそれぞれ top-N 件取得し、
+ * Reciprocal Rank Fusion (RRF) で融合して top-k を返す。
+ *
+ * @param nCandidates 各 retriever から取得する候補数（既定 15）
+ * @param rrfC RRF の c パラメータ（既定 10。135件小規模のため c=60 は rank 差を潰しすぎる）
+ * @returns RRF 融合後の top-k チャンク
+ */
+export async function retrieveHybrid(
+  db: DB,
+  query: string,
+  k: number = RETRIEVAL_K,
+  nCandidates = 15,
+  rrfC = 10,
+  weightDense = 5,
+  weightBm25 = 1,
+): Promise<RetrievedChunk[]> {
+  const { dense, bm25 } = await getHybridRetrievers(db);
+  const [denseResults, bm25Results] = await Promise.all([
+    dense.retrieve(query, nCandidates),
+    bm25.retrieve(query, nCandidates),
+  ]);
+  return reciprocalRankFusion(denseResults, bm25Results, k, rrfC, weightDense, weightBm25);
+}
+
+/**
+ * hybrid(RRF) で候補を拡張取得した後、cross-attention reranker で最終 top-k を返す。
+ *
+ * @param reranker RerankProvider 実装（CF bge-reranker-base 等）
+ * @param nCandidates RRF に渡す拡張候補数（既定 20。reranker の入力プールを広げる）
+ * @returns reranker スコア順の top-k チャンク
+ */
+export async function retrieveHybridWithRerank(
+  db: DB,
+  query: string,
+  reranker: RerankProvider,
+  k: number = RETRIEVAL_K,
+  nCandidates = 20,
+  rrfC = 10,
+  weightDense = 5,
+  weightBm25 = 1,
+): Promise<RetrievedChunk[]> {
+  const candidates = await retrieveHybrid(db, query, nCandidates, nCandidates, rrfC, weightDense, weightBm25);
+  return reranker.rerank(query, candidates, k);
 }
