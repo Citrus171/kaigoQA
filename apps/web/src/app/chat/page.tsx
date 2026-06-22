@@ -180,7 +180,7 @@ function AnswerView({ item }: { item: HistoryItem }) {
       </div>
       <div>
         <p className="font-medium text-neutral-600">回答</p>
-        <p className="mt-1 whitespace-pre-wrap break-words">{answer.answer}</p>
+        <p data-testid="answer-text" className="mt-1 whitespace-pre-wrap break-words">{answer.answer}</p>
       </div>
       <div className="rounded-md bg-neutral-50 p-3 text-xs text-neutral-700">
         <Row label="tier" value={answer.tier} />
@@ -235,7 +235,7 @@ function AnswerView({ item }: { item: HistoryItem }) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex gap-2">
+    <div data-testid={`row-${label}`} className="flex gap-2">
       <span className="w-44 shrink-0 text-neutral-500">{label}</span>
       <span className="break-words">{value}</span>
     </div>
