@@ -36,9 +36,11 @@ export const todos = pgTable(
   (t) => [index("todos_user_id_idx").on(t.userId)],
 );
 
-// Router Observability（MLOps）: 段1の振り分け判定を「理由つき」で記録する。
+// Router Observability（MLOps）: /ai/qa の判定・検索・推論メタを記録する。
 //   メタ（score/margin/sim/versions/latency）のみ＝PII非保持。query_ref は hash 先端のみ。
 //   rule 経路（埋め込み不通フォールバック）では score/threshold/margin/sim は null。
+//   RAG 検索結果は srcId のみ（本文は rag_chunks と結合で復元・PIIなし）。
+//   エラー時は served/versions 等は埋まらないが errorCode が入り、障害再現に使う。
 export const routingDecisions = pgTable(
   "routing_decisions",
   {
@@ -48,19 +50,34 @@ export const routingDecisions = pgTable(
     reqId: text("req_id").notNull(),
     ts: timestamp("ts").notNull().defaultNow(),
     queryRef: text("query_ref").notNull(), // sha256 先端のみ（全文は保持しない）
-    method: text("method").notNull(), // "classifier" | "rule"
+    // 段1 Capability Router（ドメイン内での knowledge_qa/escalate 分岐）。
+    //   ドメイン外(general)やエラー時は null。現在は LLM few-shot 分類（method=llm）。
+    //   score/threshold/margin/sim は埋め込み分類器導入時用の予備（現状 null）。
+    method: text("method"), // "llm" | "classifier" | "rule"（未実行時 null）
+    route: text("route"), // "knowledge_qa" | "escalate" | "general"（段1/段0 の最終 route）
+    routeReason: text("route_reason"),
     score: real("score"),
     threshold: real("threshold"),
     margin: real("margin"),
     simCloud: real("sim_cloud"),
     simEdge: real("sim_edge"),
+    // 段2 cascade（edge 自信不足/ガードレールで cloud へ巻き戻し）。
     edgeConfidence: real("edge_confidence"),
     escalated: boolean("escalated"),
     guardrailEsc: boolean("guardrail_esc"),
-    served: text("served").notNull(), // "edge" | "cloud"
-    embedModel: text("embed_model").notNull(),
-    classifierVersion: text("classifier_version").notNull(),
-    genModel: text("gen_model").notNull(),
+    served: text("served"), // "edge" | "cloud"（エラー時 null）
+    // RAG 検索（pgvector retrieval）。ドメイン判定の根拠 + 参照知識の監査。
+    topScore: real("top_score"), // retrieval top-1 cosine
+    domain: text("domain"), // "in" | "out"（topScore >= RAG_DOMAIN_THRESHOLD で in）
+    retrievedSrcIds: text("retrieved_src_ids"), // JSON配列 ["gold-A-037",...]（srcId のみ）
+    retrievedScores: text("retrieved_scores"), // JSON配列 [0.758,0.705,...]（score 文字列化）
+    // 出力・エラー。answerRef は回答本文の sha256 先端（本文は保持しない）。
+    answerRef: text("answer_ref"),
+    errorCode: text("error_code"), // 429/502/timeout/connrefused/empty 等（成功時 null）
+    // versions/latency は既存。エラー時は latency が embed 途中で止まりうる。
+    embedModel: text("embed_model"),
+    classifierVersion: text("classifier_version"),
+    genModel: text("gen_model"),
     latencyEmbed: integer("latency_embed"),
     latencyGen: integer("latency_gen"),
     latencyTotal: integer("latency_total").notNull(),
@@ -69,6 +86,9 @@ export const routingDecisions = pgTable(
     index("routing_margin_idx").on(t.margin),
     index("routing_served_idx").on(t.served),
     index("routing_ts_idx").on(t.ts),
+    index("routing_domain_idx").on(t.domain),
+    index("routing_error_idx").on(t.errorCode),
+    index("routing_route_idx").on(t.route),
   ],
 );
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   queryRef,
+  answerRef,
   routingDecisionToRow,
   type RoutingLogEntry,
 } from "../src/lib/routing-observability";
@@ -26,96 +27,169 @@ describe("queryRef: PII 非保持の query 参照（sha256 先端）", () => {
   });
 });
 
+describe("answerRef: PII 非保持の回答参照（sha256 先端）", () => {
+  it("同一回答は同一参照。原文非復元", async () => {
+    const a = await answerRef("市区町村の窓口で申請してください。MSWにご相談を。");
+    const b = await answerRef("市区町村の窓口で申請してください。MSWにご相談を。");
+    expect(a).toBe(b);
+    expect(a).toMatch(/^[0-9a-f]{16}$/);
+    expect(a).not.toContain("市区町村");
+  });
+
+  it("異なる回答は異なる参照", async () => {
+    const a = await answerRef("回答A");
+    const b = await answerRef("回答B");
+    expect(a).not.toBe(b);
+  });
+});
+
 describe("routingDecisionToRow: RoutingLogEntry → 行マッピング", () => {
   const base = {
     reqId: "req-1",
     ts: 1_700_000_000_000,
     queryRef: "deadbeefdeadbeef",
     versions: {
-      embedModel: "bge-m3",
-      classifierVersion: "v1",
-      genModel: "ollama:gemma3:4b",
+      embedModel: "cf:@cf/baai/bge-m3",
+      classifierVersion: "opencode-go:deepseek-v4-flash",
+      genModel: "workersai:@cf/google/gemma-4-26b-a4b-it",
     },
-    latencyMs: { embed: 12, gen: 980, total: 1010 },
+    latencyMs: { embed: 320, gen: 980, total: 1300 },
   };
 
-  it("classifier 経路 + edge served: stage1/stage2 が正しく落ちる", () => {
+  it("ドメイン内 knowledge_qa + edge served: retrieval/stage1/stage2 が正しく落ちる", () => {
     const entry: RoutingLogEntry = {
       ...base,
-      tier: "edge",
-      stage1: {
-        method: "classifier",
-        score: -0.02,
-        threshold: -0.0104,
-        margin: -0.0096,
-        simCloud: 0.41,
-        simEdge: 0.43,
+      retrieval: {
+        topScore: 0.758,
+        domain: "in",
+        retrieved: [
+          { srcId: "gold-A-037", score: 0.758 },
+          { srcId: "gold-A-060", score: 0.705 },
+          { srcId: "gold-A-045", score: 0.704 },
+        ],
+        latencyEmbed: 320,
+        embedModel: "cf:@cf/baai/bge-m3",
       },
-      stage2: { edgeConfidence: 0.82, escalated: false, guardrailEscalated: false },
+      stage1: {
+        method: "llm",
+        route: "knowledge_qa",
+        routeReason: "制度説明のため参考知識で回答可能",
+        classifierVersion: "opencode-go:deepseek-v4-flash",
+      },
+      stage2: { edgeConfidence: 0.7, escalated: false, guardrailEscalated: false },
       served: "edge",
+      answerRef: "cafebabecafebabe",
+      errorCode: null,
     };
     const row = routingDecisionToRow(entry);
-    expect(row.method).toBe("classifier");
-    expect(row.score).toBe(-0.02);
-    expect(row.threshold).toBe(-0.0104);
-    expect(row.margin).toBeCloseTo(-0.0096);
-    expect(row.simCloud).toBe(0.41);
+    // 段0 RAG
+    expect(row.topScore).toBe(0.758);
+    expect(row.domain).toBe("in");
+    expect(row.retrievedSrcIds).toBe(JSON.stringify(["gold-A-037", "gold-A-060", "gold-A-045"]));
+    expect(row.retrievedScores).toBe(JSON.stringify([0.758, 0.705, 0.704]));
+    // 段1 LLM 分類（score/margin/sim は現在 null）
+    expect(row.method).toBe("llm");
+    expect(row.route).toBe("knowledge_qa");
+    expect(row.routeReason).toBe("制度説明のため参考知識で回答可能");
+    expect(row.score).toBeNull();
+    expect(row.margin).toBeNull();
+    expect(row.simCloud).toBeNull();
+    // 段2 cascade
     expect(row.served).toBe("edge");
-    expect(row.edgeConfidence).toBe(0.82);
+    expect(row.edgeConfidence).toBe(0.7);
     expect(row.escalated).toBe(false);
     expect(row.guardrailEsc).toBe(false);
-    expect(row.genModel).toBe("ollama:gemma3:4b");
-    expect(row.latencyTotal).toBe(1010);
+    // 出力・エラー
+    expect(row.answerRef).toBe("cafebabecafebabe");
+    expect(row.errorCode).toBeNull();
+    // versions/latency
+    expect(row.genModel).toBe("workersai:@cf/google/gemma-4-26b-a4b-it");
+    expect(row.latencyEmbed).toBe(320);
+    expect(row.latencyGen).toBe(980);
+    expect(row.latencyTotal).toBe(1300);
     // ts は epoch ms → Date に変換。
     expect(row.ts).toBeInstanceOf(Date);
     expect((row.ts as Date).getTime()).toBe(1_700_000_000_000);
   });
 
-  it("rule 経路（埋め込み不通）: score 系は null（DDL nullable の根拠）", () => {
+  it("ドメイン外 general: stage1 未実行（null）。served は cascade で決定", () => {
     const entry: RoutingLogEntry = {
       ...base,
-      tier: "cloud",
-      stage1: {
-        method: "rule",
-        score: null,
-        threshold: null,
-        margin: null,
-        simCloud: null,
-        simEdge: null,
+      retrieval: {
+        topScore: 0.39,
+        domain: "out",
+        retrieved: [{ srcId: "gold-A-012", score: 0.39 }],
+        latencyEmbed: 280,
+        embedModel: "cf:@cf/baai/bge-m3",
       },
-      served: "cloud", // stage2 なし（段1で直 cloud）
+      // general は段1未実行 → stage1 なし
+      stage2: { edgeConfidence: 0.7, escalated: false, guardrailEscalated: false },
+      served: "edge",
+      answerRef: "abcdef0123456789",
+      errorCode: null,
     };
     const row = routingDecisionToRow(entry);
-    expect(row.method).toBe("rule");
-    expect(row.score).toBeNull();
-    expect(row.threshold).toBeNull();
-    expect(row.margin).toBeNull();
-    expect(row.simCloud).toBeNull();
-    // stage2 不在 → escalation 系も null。
+    expect(row.domain).toBe("out");
+    expect(row.topScore).toBe(0.39);
+    expect(row.method).toBeNull();
+    expect(row.route).toBeNull();
+    expect(row.routeReason).toBeNull();
+    expect(row.served).toBe("edge");
+    expect(row.answerRef).toBe("abcdef0123456789");
+    expect(row.errorCode).toBeNull();
+  });
+
+  it("エラー時: served/answerRef null, errorCode 設定, 段1/段2 なし", () => {
+    const entry: RoutingLogEntry = {
+      ...base,
+      retrieval: {
+        topScore: 0,
+        domain: "out",
+        retrieved: [],
+        latencyEmbed: 50,
+        embedModel: "cf:@cf/baai/bge-m3",
+      },
+      served: null,
+      answerRef: null,
+      errorCode: "429",
+      // エラー時は latency が embed 途中で止まりうる
+    };
+    const row = routingDecisionToRow(entry);
+    expect(row.errorCode).toBe("429");
+    expect(row.served).toBeNull();
+    expect(row.answerRef).toBeNull();
+    expect(row.method).toBeNull();
     expect(row.edgeConfidence).toBeNull();
     expect(row.escalated).toBeNull();
     expect(row.guardrailEsc).toBeNull();
-    expect(row.served).toBe("cloud");
+    expect(row.latencyTotal).toBe(1300);
   });
 
   it("guardrail エスカレーション: served=cloud で guardrailEsc=true", () => {
     const entry: RoutingLogEntry = {
       ...base,
-      tier: "edge", // 段1は edge と判定したが…
-      stage1: {
-        method: "classifier",
-        score: -0.05,
-        threshold: -0.0104,
-        margin: -0.0396,
-        simCloud: 0.38,
-        simEdge: 0.43,
+      retrieval: {
+        topScore: 0.71,
+        domain: "in",
+        retrieved: [{ srcId: "gold-A-037", score: 0.71 }],
+        latencyEmbed: 300,
+        embedModel: "cf:@cf/baai/bge-m3",
       },
-      stage2: { edgeConfidence: 0.9, escalated: false, guardrailEscalated: true },
+      stage1: {
+        method: "llm",
+        route: "escalate",
+        routeReason: "個別ケースの数値結果",
+        classifierVersion: "opencode-go:deepseek-v4-flash",
+      },
+      stage2: { edgeConfidence: 0.8, escalated: false, guardrailEscalated: true },
       served: "cloud", // ガードレールで cloud へ巻き戻し
+      answerRef: "1122334455667788",
+      errorCode: null,
     };
     const row = routingDecisionToRow(entry);
     expect(row.served).toBe("cloud");
     expect(row.guardrailEsc).toBe(true);
     expect(row.escalated).toBe(false);
+    expect(row.route).toBe("escalate");
   });
 });
