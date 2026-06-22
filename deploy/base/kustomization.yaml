@@ -10,5 +10,3 @@ resources:
   - web-service.yaml
   - postgres-statefulset.yaml
   - postgres-service.yaml
-  - ollama-deployment.yaml
-  - ollama-service.yaml
