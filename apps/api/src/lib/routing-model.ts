@@ -57,27 +57,42 @@ export interface RoutingClassifier {
 }
 
 /**
- * 段1ルータの判定を「理由つき」で表す観測レコード（Router Observability MVP）。
- * 分岐ロジックは変えず、ai.ts のハンドラがこれを組んで RoutingLogger に流す。
- *   - 「なぜ」の本体は margin（=score-threshold）と simCloud/simEdge。
- *   - rule 経路（埋め込み不通フォールバック）では score 系は null。
+ * /ai/qa の判定・検索・推論を記録する観測レコード（Router Observability）。
+ * ai.ts のハンドラがこれを組んで RoutingLogger に流す。
+ *   - 段0 RAG: pgvector retrieval の topScore でドメイン内/外を判定。
+ *   - 段1 Capability Router: ドメイン内のみ LLM few-shot 分類で knowledge_qa/escalate を決定
+ *     （general/エラー時は未実行）。現在は埋め込みセントロイド閾値ではなく LLM 分類のため
+ *     score/margin/sim は持たない（将来 埋め込み分類器導入時は拡張）。
+ *   - 段2 cascade: edge 自信不足/ガードレールで cloud へ巻き戻し。
+ *   - 出力: answerRef は回答本文の sha256 先端（本文は保持しない）。
+ *   - エラー: 推論/検索失敗時は errorCode を入れ、served/段1/段2 は null になりうる。
  */
 export interface RoutingDecision {
-  tier: Tier;
-  stage1: {
-    method: "classifier" | "rule";
-    score: number | null;
-    threshold: number | null;
-    margin: number | null;
-    simCloud: number | null;
-    simEdge: number | null;
+  // 段0 RAG 検索（pgvector）。ドメイン判定の根拠 + 参照知識の監査。
+  retrieval: {
+    topScore: number; // top-1 cosine（0 if no hits）
+    domain: "in" | "out"; // topScore >= RAG_DOMAIN_THRESHOLD で in
+    retrieved: { srcId: string; score: number }[]; // RETRIEVAL_K 件（srcId のみ）
+    latencyEmbed: number; // embed+検索の ms
+    embedModel: string;
   };
+  // 段1 Capability Router（ドメイン内のみ LLM few-shot 分類）。general/エラー時は null。
+  stage1?: {
+    method: "llm"; // 現在は LLM few-shot 分類（将来 埋め込み分類器=classifier/rule を追加しうる）
+    route: "knowledge_qa" | "escalate" | "general";
+    routeReason: string;
+    classifierVersion: string;
+  };
+  // 段2 cascade（edge 一次応答後の巻き戻し判定）。general/エラー時は null。
   stage2?: {
     edgeConfidence: number;
     escalated: boolean; // 自信不足で cloud へ巻き戻し
     guardrailEscalated: boolean; // ガードレール（危険断定）で cloud へ巻き戻し
   };
-  served: Tier; // 実際に返した先（stage2 で反転しうる）
+  served: Tier | null; // 実際に返した先（stage2 で反転しうる）。エラー時 null。
+  // 出力・エラー。
+  answerRef: string | null; // 回答本文の sha256 先端（成功時のみ）
+  errorCode: string | null; // 429/502/timeout/connrefused/empty 等（成功時 null）
   versions: { embedModel: string; classifierVersion: string; genModel: string };
   latencyMs: { embed: number; gen: number; total: number };
 }
