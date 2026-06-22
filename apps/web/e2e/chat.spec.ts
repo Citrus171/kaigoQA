@@ -216,10 +216,20 @@ test.describe("/chat: プロンプトQ&A", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("/ は /chat へリダイレクトする", async ({ page }) => {
+  test("/ は /chat へリダイレクトする", async ({ page, context }) => {
+    // proxy が /chat を保護するため、認証済み cookie を前提とする。
+    await context.addCookies([
+      { name: "session", value: "mock-jwt", domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" },
+    ]);
     await page.goto("/");
     await page.waitForURL("**/chat");
     await expect(page).toHaveURL(/\/chat$/);
+  });
+
+  test("未認証で /chat にアクセスすると /login へリダイレクトする（proxy）", async ({ page }) => {
+    await page.goto("/chat");
+    await page.waitForURL("**/login");
+    await expect(page).toHaveURL(/\/login$/);
   });
 
   test("ページ再読み込みで localStorage の履歴が復元される", async ({ page }) => {
