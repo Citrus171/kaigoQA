@@ -30,6 +30,7 @@ export class CfBgeM3EmbedProvider implements EmbedProvider {
       throw new InferenceError(
         this.name,
         "CF_ACCOUNT_ID / CF_API_TOKEN が未設定です",
+        "config",
       );
     }
     let res: Response;
@@ -45,14 +46,14 @@ export class CfBgeM3EmbedProvider implements EmbedProvider {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
-      const reason =
-        e instanceof Error && e.name === "TimeoutError"
-          ? `CF 埋め込みが ${this.timeoutMs}ms 以内に応答しませんでした`
-          : "Cloudflare AI に接続できません";
-      throw new InferenceError(this.name, reason, e);
+      const isTimeout = e instanceof Error && e.name === "TimeoutError";
+      const reason = isTimeout
+        ? `CF 埋め込みが ${this.timeoutMs}ms 以内に応答しませんでした`
+        : "Cloudflare AI に接続できません";
+      throw new InferenceError(this.name, reason, isTimeout ? "timeout" : "connrefused", undefined, e);
     }
     if (!res.ok) {
-      throw new InferenceError(this.name, `CF AI が ${res.status} を返しました`);
+      throw new InferenceError(this.name, `CF AI が ${res.status} を返しました`, "http", res.status);
     }
     const json = (await res.json()) as {
       success?: boolean;
@@ -60,7 +61,7 @@ export class CfBgeM3EmbedProvider implements EmbedProvider {
     };
     const data = json.result?.data;
     if (!data || data.length !== texts.length) {
-      throw new InferenceError(this.name, "CF 埋め込み応答の形式が不正です");
+      throw new InferenceError(this.name, "CF 埋め込み応答の形式が不正です", "badformat");
     }
     // コーパス成果物の cosine と揃えるため L2 正規化（cosine() は内積前提）。
     return data.map(l2normalize);

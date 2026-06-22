@@ -61,17 +61,19 @@ export class OllamaEmbedProvider implements EmbedProvider {
         body: JSON.stringify({ model: this.model, input: texts }),
       });
     } catch (e) {
-      throw new InferenceError(this.name, "Ollama(embed) に接続できません", e);
+      throw new InferenceError(this.name, "Ollama(embed) に接続できません", "connrefused", undefined, e);
     }
     if (!res.ok) {
       throw new InferenceError(
         this.name,
         `Ollama(embed) が ${res.status} を返しました`,
+        "http",
+        res.status,
       );
     }
     const data = (await res.json()) as { embeddings?: number[][] };
     if (!data.embeddings || data.embeddings.length !== texts.length) {
-      throw new InferenceError(this.name, "embed 応答の形式が不正です");
+      throw new InferenceError(this.name, "embed 応答の形式が不正です", "badformat");
     }
     return data.embeddings.map(l2normalize);
   }

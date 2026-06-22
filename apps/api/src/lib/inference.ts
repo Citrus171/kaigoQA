@@ -9,14 +9,30 @@ export interface InferProvider {
   infer(prompt: string, system?: string): Promise<{ text: string; confidence: number }>;
 }
 
+// 失敗の種別。errorCode（監査・アラート分岐の入力）を message 文字列マッチでなく型から導く。
+export type InferenceErrorKind =
+  | "timeout" // 上流が時間内に応答しない
+  | "connrefused" // 接続できない
+  | "http" // 上流が非2xx（status 同梱。429/5xx のアラート分岐に使う）
+  | "empty" // 空応答
+  | "badformat" // 応答形式が不正
+  | "config"; // 必要な API キー等が未設定
+
 export class InferenceError extends Error {
   constructor(
     readonly provider: string,
     message: string,
+    readonly kind: InferenceErrorKind,
+    readonly status?: number, // kind="http" のときの HTTP ステータス
     readonly cause?: unknown,
   ) {
     super(`[${provider}] ${message}`);
     this.name = "InferenceError";
+  }
+
+  // 観測の errorCode。http は status をそのまま文字列化（"429"/"503" 等でアラート分岐可能）。
+  get errorCode(): string {
+    return this.kind === "http" ? String(this.status ?? "http") : this.kind;
   }
 }
 
@@ -66,15 +82,15 @@ export class OllamaProvider implements InferProvider {
         }),
       });
     } catch (e) {
-      throw new InferenceError(this.name, "Ollama に接続できません", e);
+      throw new InferenceError(this.name, "Ollama に接続できません", "connrefused", undefined, e);
     }
     if (!res.ok) {
-      throw new InferenceError(this.name, `Ollama が ${res.status} を返しました`);
+      throw new InferenceError(this.name, `Ollama が ${res.status} を返しました`, "http", res.status);
     }
     const data = (await res.json()) as { message?: { content?: unknown } };
     const text = String(data.message?.content ?? "").trim();
     if (text === "") {
-      throw new InferenceError(this.name, "Ollama が空応答を返しました");
+      throw new InferenceError(this.name, "Ollama が空応答を返しました", "empty");
     }
     return { text, confidence: outputConfidence(text) };
   }
@@ -107,6 +123,7 @@ export class WorkersAiProvider implements InferProvider {
       throw new InferenceError(
         this.name,
         "CF_ACCOUNT_ID / CF_API_TOKEN が未設定です",
+        "config",
       );
     }
     let res: Response;
@@ -129,16 +146,18 @@ export class WorkersAiProvider implements InferProvider {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
-      const reason =
-        e instanceof Error && e.name === "TimeoutError"
-          ? `Workers AI が ${this.timeoutMs}ms 以内に応答しませんでした`
-          : "Cloudflare Workers AI に接続できません";
-      throw new InferenceError(this.name, reason, e);
+      const isTimeout = e instanceof Error && e.name === "TimeoutError";
+      const reason = isTimeout
+        ? `Workers AI が ${this.timeoutMs}ms 以内に応答しませんでした`
+        : "Cloudflare Workers AI に接続できません";
+      throw new InferenceError(this.name, reason, isTimeout ? "timeout" : "connrefused", undefined, e);
     }
     if (!res.ok) {
       throw new InferenceError(
         this.name,
         `Workers AI が ${res.status} を返しました`,
+        "http",
+        res.status,
       );
     }
     const body = (await res.json()) as {
@@ -155,7 +174,7 @@ export class WorkersAiProvider implements InferProvider {
       ""
     ).trim();
     if (text === "") {
-      throw new InferenceError(this.name, "Workers AI が空応答を返しました");
+      throw new InferenceError(this.name, "Workers AI が空応答を返しました", "empty");
     }
     return { text, confidence: outputConfidence(text) };
   }
@@ -187,7 +206,7 @@ export class OpenCodeProvider implements InferProvider {
   // 未指定なら user メッセージのみ（分類器呼び出しや general 経路で使う）。
   async infer(prompt: string, system?: string) {
     if (!this.key) {
-      throw new InferenceError(this.name, "OPENCODE_API_KEY が未設定です");
+      throw new InferenceError(this.name, "OPENCODE_API_KEY が未設定です", "config");
     }
     const messages = system
       ? [
@@ -210,15 +229,18 @@ export class OpenCodeProvider implements InferProvider {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
-      const reason = e instanceof Error && e.name === "TimeoutError"
+      const isTimeout = e instanceof Error && e.name === "TimeoutError";
+      const reason = isTimeout
         ? `OpenCode Go が ${this.timeoutMs}ms 以内に応答しませんでした`
         : "OpenCode Go に接続できません";
-      throw new InferenceError(this.name, reason, e);
+      throw new InferenceError(this.name, reason, isTimeout ? "timeout" : "connrefused", undefined, e);
     }
     if (!res.ok) {
       throw new InferenceError(
         this.name,
         `OpenCode Go が ${res.status} を返しました`,
+        "http",
+        res.status,
       );
     }
     const data = (await res.json()) as {
@@ -226,7 +248,7 @@ export class OpenCodeProvider implements InferProvider {
     };
     const text = data.choices?.[0]?.message?.content;
     if (typeof text !== "string") {
-      throw new InferenceError(this.name, "OpenCode Go 応答の形式が不正です");
+      throw new InferenceError(this.name, "OpenCode Go 応答の形式が不正です", "badformat");
     }
     return { text, confidence: OpenCodeProvider.CLOUD_CONFIDENCE };
   }
@@ -259,7 +281,7 @@ export class OpenRouterProvider implements InferProvider {
 
   async infer(prompt: string) {
     if (!this.key) {
-      throw new InferenceError(this.name, "OPENROUTER_API_KEY が未設定です");
+      throw new InferenceError(this.name, "OPENROUTER_API_KEY が未設定です", "config");
     }
     let res: Response;
     try {
@@ -278,20 +300,21 @@ export class OpenRouterProvider implements InferProvider {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
-      const reason = e instanceof Error && e.name === "TimeoutError"
+      const isTimeout = e instanceof Error && e.name === "TimeoutError";
+      const reason = isTimeout
         ? `judge API が ${this.timeoutMs}ms 以内に応答しませんでした`
         : "judge API に接続できません";
-      throw new InferenceError(this.name, reason, e);
+      throw new InferenceError(this.name, reason, isTimeout ? "timeout" : "connrefused", undefined, e);
     }
     if (!res.ok) {
-      throw new InferenceError(this.name, `judge API が ${res.status} を返しました`);
+      throw new InferenceError(this.name, `judge API が ${res.status} を返しました`, "http", res.status);
     }
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
     const text = data.choices?.[0]?.message?.content;
     if (typeof text !== "string") {
-      throw new InferenceError(this.name, "judge API 応答の形式が不正です");
+      throw new InferenceError(this.name, "judge API 応答の形式が不正です", "badformat");
     }
     return { text, confidence: OpenRouterProvider.JUDGE_CONFIDENCE };
   }

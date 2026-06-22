@@ -203,18 +203,6 @@ export async function domainAnswer(
   };
 }
 
-// InferenceError の message から監査用 errorCode を正規化（429/timeout/connrefused/empty/other）。
-// アラート分岐（502連続=LLM不調 / 429継続=レート枯渇）の入力に使う。
-function normalizeErrorCode(e: InferenceError): string {
-  const m = e.message;
-  if (m.includes("429")) return "429";
-  if (m.includes("Timeout") || m.includes("応答しませんでした")) return "timeout";
-  if (m.includes("接続できません")) return "connrefused";
-  if (m.includes("空応答")) return "empty";
-  if (m.includes("形式が不正")) return "badformat";
-  return "other";
-}
-
 // retrieval 観測ブロック。成功/エラー両経路で同形に組む。
 // state が null（retrieval 段で失敗）なら topScore:0/domain:out/空配列。
 function retrievalBlock(
@@ -313,12 +301,10 @@ export const aiRoutes = new Hono<AppEnv>()
         answerRef: await answerRef(result.answer),
         errorCode: null,
         versions: {
-          embedModel: embedProvider.name,
           classifierVersion: cloud.name,
           genModel: result.model,
         },
         latencyMs: {
-          embed: retrievalLatency,
           gen: totalLatency - retrievalLatency,
           total: totalLatency,
         },
@@ -331,7 +317,8 @@ export const aiRoutes = new Hono<AppEnv>()
       // エラー時も観測。retrieval 成功後の推論失敗なら実態（topScore/domain/retrieved）を記録、
       // retrieval 段の失敗なら retrievalState は null で topScore:0/domain:out。
       const totalLatency = Date.now() - startedAt;
-      const errorCode = e instanceof InferenceError ? normalizeErrorCode(e) : "internal";
+      // errorCode は InferenceError が kind/status から導く（message 文字列マッチ廃止）。
+      const errorCode = e instanceof InferenceError ? e.errorCode : "internal";
       emitDecision(
         logger,
         {
@@ -339,8 +326,8 @@ export const aiRoutes = new Hono<AppEnv>()
           served: null,
           answerRef: null,
           errorCode,
-          versions: { embedModel: embedProvider.name, classifierVersion: cloud.name, genModel: "unknown" },
-          latencyMs: { embed: retrievalLatency, gen: 0, total: totalLatency },
+          versions: { classifierVersion: cloud.name, genModel: "unknown" },
+          latencyMs: { gen: 0, total: totalLatency },
         },
         reqId,
         startedAt,

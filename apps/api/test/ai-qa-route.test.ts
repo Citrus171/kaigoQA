@@ -240,7 +240,7 @@ describe("POST /ai/qa: Router Observability emit(routingLogger に流す Routing
     h.state.topScore = 0.7; // retrieval は成功 → retrievalState が埋まる
     // classifyRoute(最初の cloud 呼び出し)で Timeout。retrieval 成功後の推論失敗を再現。
     h.state.cloudReply = () => {
-      throw new InferenceError("opencode:test", "Timeout: cloud が応答しませんでした");
+      throw new InferenceError("opencode:test", "Timeout: cloud が応答しませんでした", "timeout");
     };
     const res = await postQaObs("自己負担割合はどう決まりますか");
     expect(res.status).toBe(502); // InferenceError → 上流不調

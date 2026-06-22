@@ -87,7 +87,8 @@ export async function classifyRoute(
   cloud: InferProvider = new OpenCodeProvider(),
 ): Promise<RouteDecision> {
   const { text } = await cloud.infer(
-    CLASSIFIER_PROMPT.replace("{query}", question),
+    // 関数形式の replace。question に $&,$1 等が含まれても置換パターンと誤解釈させない。
+    CLASSIFIER_PROMPT.replace("{query}", () => question),
   );
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) return { route: "knowledge_qa", reason: "分類応答の解析失敗" };

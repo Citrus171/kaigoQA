@@ -63,6 +63,21 @@ describe("classifyRoute: 介護QA の意図分類（JSON解析とフォールバ
     );
     expect(d.reason.length).toBe(30);
   });
+
+  it("質問に $& 等が含まれても置換パターンと誤解釈せず逐語で埋め込む（#10 footgun）", async () => {
+    let captured = "";
+    const capturingCloud: InferProvider = {
+      name: "fake",
+      async infer(prompt: string) {
+        captured = prompt;
+        return { text: '{"route":"knowledge_qa","reason":"r"}', confidence: 1 };
+      },
+    };
+    const tricky = "費用は $& $1 $` で計算しますか";
+    await classifyRoute(tricky, capturingCloud);
+    // String.replace の置換パターン($&等)に化けず、質問がそのまま現れる。
+    expect(captured).toContain(tricky);
+  });
 });
 
 describe("buildSystemPrompt: route に応じた生成ポリシーの切替", () => {
