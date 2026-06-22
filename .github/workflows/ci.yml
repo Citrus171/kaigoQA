@@ -1,0 +1,36 @@
+# PR 品質ゲート（軽量）: マージ前に型・ビルドの破綻を止める。
+#   - api/web typecheck（`npm run typecheck` が両ワークスペースを実行）
+#   - web build（Next build の破綻検知）
+# api の実DB test(test:api) と web e2e(playwright) は実行時間・flaky を避け本ゲートには含めない
+# （ローカル/別ジョブで担保。スコープ拡張は将来 follow-up）。
+# デプロイは deploy-images.yml（main push → GHCR）が別途担当。
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck (api + web)
+        run: npm run typecheck
+
+      - name: Build web
+        run: npm run build:web
