@@ -25,6 +25,11 @@ spec:
                 configMapKeyRef:
                   name: hybrid-config
                   key: API_ORIGIN
+            # Next.js standalone は HOSTNAME env に bind する。未指定時は pod名（=pod IP）
+            # に bind され、kubectl port-forward が pod 内 localhost:3000 に接続できず
+            # "connection refused" になる。0.0.0.0 で全 IF に bind させ port-forward を通す。
+            - name: HOSTNAME
+              value: "0.0.0.0"
           readinessProbe:
             httpGet:
               path: /
