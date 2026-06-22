@@ -26,6 +26,7 @@
     "test:watch": "vitest",
     "build:model": "tsx scripts/build-routing-model.ts",
     "build:rag": "tsx scripts/build-rag-corpus.ts",
+    "generate:headings": "tsx scripts/generate-headings.ts",
     "split:gold-a": "tsx scripts/split-gold-a.ts",
     "review:gold-a": "tsx scripts/review-gold-a.ts",
     "eval:routing": "tsx eval/eval-routing.ts",
