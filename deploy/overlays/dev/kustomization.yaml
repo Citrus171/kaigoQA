@@ -9,7 +9,7 @@ images:
     newTag: sha-7fa481f
   - name: hybrid-web:dev
     newName: ghcr.io/citrus171/kaigo-web
-    newTag: sha-7fa481f
+    newTag: sha-52efb89
 patches:
   - target:
       kind: Deployment
