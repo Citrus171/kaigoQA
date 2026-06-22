@@ -152,4 +152,16 @@ functest-hybrid/   (npm workspaces)
 
 ## 関連
 
+## RAG retrieval 改善（2026-06-22）
+
+> 詳細計画書: `docs/rag-retrieval-improvement-plan-2026-06-22.md`（gitignore対象・ローカル）。
+
+- **A0 gold修正**: gold-A-056/071 の referencePoints を修正・corpus 再 embedding。
+- **A1 hybrid retrieval**: BM25(kuromoji) + dense(pgvector) の RRF 融合。最適 w5:1 c=10。self-match @1=88.9% / @8=99.3%。`lib/bm25.ts` / `lib/retriever.ts` / `lib/rag.ts` に実装。
+- **A2 reranker**: CF bge-reranker-base で計測 → **No-Go**（self-match eval と学習目的のミスマッチで全指標退行）。`lib/cf-rerank.ts` は生成後段 filter 用に残置。
+- **real-query eval**: 口語短文26件で retrieval+生成を計測。第1回 good=53.8% → brevity制約緩和(網羅性優先) → 第2回 good=80.8%。`eval/eval-rag-gen.ts`。
+- **RETRIEVAL_K**: 3→5 に変更（real-query @5=96.2% / @3=80.8%）。
+- **B1 PDF ingestion（Track B クローズ判断撤回）**: 計画書で「現スコープ不要」としたが、ユーザーが実機で「回答がまったくだめ」を実感し覆った。厚労省「介護サービス関係Q&A集」(168頁) を1954件チャンク化し投入。x座標列復元で表構造保持・見出し前置・発出時期メタ付与。当該質問 top-1=0.872・正答生成。DB 2089 chunks。コミット `5cd103e`。
+- **k3d 実機検証**: ArgoCD が push 検知で自動デプロイ。web pod の `HOSTNAME=0.0.0.0` 設定（port-forward 接続問題）は `deploy/base/web-deployment.yaml` への永続化が未対応。
+
 - 設計の経緯: `functest-hono/memo.md`、メモリ `functest-variants.md` / `engineering-priority-authz-over-authn.md`
