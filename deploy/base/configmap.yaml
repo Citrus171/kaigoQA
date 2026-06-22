@@ -6,8 +6,6 @@ data:
   AI_ROUTER: "classifier"
   # 検証済み運用点（apps/api/.env と一致。train→eval で非対称コスト最小化した値）。
   AI_ROUTER_THRESHOLD: "-0.094"
-  OLLAMA_URL: "http://ollama:11434"
-  OLLAMA_EMBED_MODEL: "bge-m3"
   API_ORIGIN: "http://api:8787"
-  # edge SLM=Workers AI Gemma4（HTTP・既定）。CF_* は Secret。ローカル回帰時のみ ollama に切替。
+  # edge SLM=Workers AI Gemma4（HTTP・既定）。CF_* は Secret。
   AI_EDGE_PROVIDER: "workersai"
