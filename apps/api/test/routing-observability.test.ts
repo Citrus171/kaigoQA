@@ -84,8 +84,9 @@ describe("routingDecisionToRow: RoutingLogEntry → 行マッピング", () => {
     // 段0 RAG
     expect(row.topScore).toBe(0.758);
     expect(row.domain).toBe("in");
-    expect(row.retrievedSrcIds).toBe(JSON.stringify(["gold-A-037", "gold-A-060", "gold-A-045"]));
-    expect(row.retrievedScores).toBe(JSON.stringify([0.758, 0.705, 0.704]));
+    // jsonb 列は配列のまま保持（文字列化しない）。
+    expect(row.retrievedSrcIds).toEqual(["gold-A-037", "gold-A-060", "gold-A-045"]);
+    expect(row.retrievedScores).toEqual([0.758, 0.705, 0.704]);
     // 段1 LLM 分類（score/margin/sim は現在 null）
     expect(row.method).toBe("llm");
     expect(row.route).toBe("knowledge_qa");
