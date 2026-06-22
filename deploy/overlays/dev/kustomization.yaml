@@ -6,10 +6,10 @@ resources:
 images:
   - name: hybrid-api:dev
     newName: ghcr.io/citrus171/kaigo-api
-    newTag: sha-a75c6bb
+    newTag: sha-7fa481f
   - name: hybrid-web:dev
     newName: ghcr.io/citrus171/kaigo-web
-    newTag: sha-a75c6bb
+    newTag: sha-7fa481f
 patches:
   - target:
       kind: Deployment
