@@ -52,5 +52,13 @@ apps/api/eval/data/phaseA-*.json
 # E2E評価の生成成果物(回答本文/judge結果・再採点用)。Git管理外。
 eval-artifacts/
 
+# PDF ingestion ソース・中間生成物（厚労省著作物・大きい・スクリプトで再生成可）
+apps/api/eval/data/pdf/*.pdf
+apps/api/eval/data/pdf/*-raw.txt
+apps/api/eval/data/pdf/*-chunks.jsonl
+
+# k8s secret 実値（secret.example.yaml のみ追跡）
+deploy/base/secret.yaml
+
 # Kilo Code のプラン/作業ファイル（ローカル設計メモ・Git管理外）
 .kilo/
