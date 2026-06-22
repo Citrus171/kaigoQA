@@ -148,7 +148,7 @@ functest-hybrid/   (npm workspaces)
   - 評価: edge 90.2% ＞ cloud flash 85.4%（同基盤・gold-a 41件・`eval/out/44`）/ 実装前シミュレーション fallback 0%（`eval/out/45`）/ 本番フロー41件実測も fallback 0%・空答 0%（`eval/out/46`）。
   - 経路忠実性: 本番フロー答案を out/44 同一 judge(gpt-4o・全ref統一)で採点し **90.2% = eval経路 90.2%（差 0pt・`eval/out/47`）**＝本番 `/ai/qa` 配線が評価スクリプトと同等品質の答案を生成。relaxed 90.2%(実用KPI)/strict 58.5%。
 - **テスト**: cascade 3分岐（edge確定 / 退化fallback / risky fallback）の関数単体（`test/ai-qa.test.ts`）+ `app.request("/ai/qa")` の routes 配線統合（`test/ai-qa-route.test.ts`、DB/CF 不要・モック注入で配線を検証）。計 40 件緑、typecheck(api+web) 緑。
-- **既知事項（最適化候補）**: `knowledge_qa` は edge 確定でも `classifyRoute` の cloud 往復が latency 律速（p50 4.4s、edge 生成自体は 〜0.9s）。分類の edge 化／ヒューリスティック化が次の改善対象。
+- **既知事項（最適化候補）**: `knowledge_qa` は edge 確定でも `classifyRoute` の cloud 往復が latency 律速（p50 4.4s、edge 生成自体は 〜0.9s）。→ **解消済み（下記「分類の edge 化」参照）**。
 
 ## 関連
 
@@ -162,6 +162,20 @@ functest-hybrid/   (npm workspaces)
 - **real-query eval**: 口語短文26件で retrieval+生成を計測。第1回 good=53.8% → brevity制約緩和(網羅性優先) → 第2回 good=80.8%。`eval/eval-rag-gen.ts`。
 - **RETRIEVAL_K**: 3→5 に変更（real-query @5=96.2% / @3=80.8%）。
 - **B1 PDF ingestion（Track B クローズ判断撤回）**: 計画書で「現スコープ不要」としたが、ユーザーが実機で「回答がまったくだめ」を実感し覆った。厚労省「介護サービス関係Q&A集」(168頁) を1954件チャンク化し投入。x座標列復元で表構造保持・見出し前置・発出時期メタ付与。当該質問 top-1=0.872・正答生成。DB 2089 chunks。コミット `5cd103e`。
-- **k3d 実機検証**: ArgoCD が push 検知で自動デプロイ。web pod の `HOSTNAME=0.0.0.0` 設定（port-forward 接続問題）は `deploy/base/web-deployment.yaml` への永続化が未対応。
+- **k3d 実機検証**: ArgoCD が push 検知で自動デプロイ。web pod の `HOSTNAME=0.0.0.0` 設定（port-forward 接続問題）は `deploy/base/web-deployment.yaml` へ永続化済み（コミット `dc5946a`）。
+- **B1 後の retrieval 回帰確認（k3d 2089 chunks）**: コーパス 10倍化の影響を再 eval。旧 gold の self-match @8 99.3%→95.6%、real-query @5 96.2%→84.6% と低下するが、これは正解側が mhlw チャンクへ**正当に置換**された結果（gold 自己照合指標のバイアス）。出典 000872766.pdf 由来の自然文質問5件を本番 `/ai/qa` で検証 → 全問 top-1 に正解 mhlw チャンクがヒットし edge 生成のみで正答 → **B1 は目的（PDF 質問の品質改善）を達成**。retrieval 低下は許容トレードオフと判断。
+
+## 分類の edge 化（latency 最適化・OpenCode 削減）（2026-06-22）
+
+> ブランチ `feat/edge-classify-routing`。上記「既知事項」の latency 律速（`classifyRoute` の cloud 往復）への対応。
+
+- **変更**: `domainAnswer` の `classifyRoute(question, cloud)` → `classifyRoute(question, edge)`。分類を Workers AI(Gemma) で実行し OpenCode 往復を排除。観測 `classifierVersion` も `edge.name` に修正。
+- **方式選定（`eval/exp-route-*.ts`、gold 135件・escalate=5 で評価）**:
+  - 純 embedding セントロイド分類 = **不可**（escalate と knowledge_qa が埋め込み空間で重複。recall100% に FP8）。意図差（一般説明 vs 個別ケース計算）は話題でなく埋め込みに乗らない。
+  - キーワードヒューリスティック = **不可**（recall 2/5＝安全側の取りこぼし）。
+  - **edge LLM 分類 = 採用**。原 prompt で全体 acc 94.8%・**escalate recall 5/5（取りこぼし0）**・latency p50 684ms。過剰 escalate(FP) は cloud guardrail 生成に回るだけで安全側。
+- **効果**: ドメイン質問あたり OpenCode 呼び出し 概算 ~140→~12（−91%）。`knowledge_qa` は分類も生成も edge＝OpenCode ゼロ。`escalate` のみ cloud guardrail を維持。
+- **検証**: test/ai-qa.test.ts・ai-qa-route.test.ts を edge 分類前提に更新、全 68 件緑・typecheck 通過。実機 E2E（k3d）で `knowledge_qa`→tier=edge / `escalate`→tier=cloud の正配線を確認。
+- **残課題**: escalate gold が5件で薄い（本来はラベル拡充して再キャリブレーション）。初回クエリは BM25 索引 cold build（2089件）が latency に出る＝次の最適化候補。
 
 - 設計の経緯: `functest-hono/memo.md`、メモリ `functest-variants.md` / `engineering-priority-authz-over-authn.md`

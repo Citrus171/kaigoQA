@@ -138,7 +138,11 @@ export async function domainAnswer(
   edge: InferProvider,
   cloud: InferProvider,
 ): Promise<AnswerResult> {
-  const decision = await classifyRoute(question, cloud);
+  // 分類は edge(Workers AI) で行う: cloud 往復が latency 律速(p50 4.4s)だったため。
+  // gold 135件で edge 分類 escalate recall=5/5(取りこぼし0=安全), 全体 acc 94.8%。
+  // 過剰 escalate(FP)は cloud guardrail 生成に回るだけで安全側。これで OpenCode の
+  // classify 呼び出しを全廃(ドメイン質問あたり cloud 呼び出し ~140→~12/135)。
+  const decision = await classifyRoute(question, edge);
   const system = buildSystemPrompt(decision.route, hits.map((h) => h.text));
   const base = {
     route: decision.route,
@@ -289,7 +293,8 @@ export const aiRoutes = new Hono<AppEnv>()
                 method: "llm",
                 route: result.route,
                 routeReason: result.routeReason,
-                classifierVersion: cloud.name,
+                classifierVersion: edge.name, // 分類は edge(Workers AI)で実行
+
               }
             : undefined,
         stage2: {
