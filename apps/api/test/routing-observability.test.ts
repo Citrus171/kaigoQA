@@ -49,11 +49,10 @@ describe("routingDecisionToRow: RoutingLogEntry → 行マッピング", () => {
     ts: 1_700_000_000_000,
     queryRef: "deadbeefdeadbeef",
     versions: {
-      embedModel: "cf:@cf/baai/bge-m3",
       classifierVersion: "opencode-go:deepseek-v4-flash",
       genModel: "workersai:@cf/google/gemma-4-26b-a4b-it",
     },
-    latencyMs: { embed: 320, gen: 980, total: 1300 },
+    latencyMs: { gen: 980, total: 1300 },
   };
 
   it("ドメイン内 knowledge_qa + edge served: retrieval/stage1/stage2 が正しく落ちる", () => {
@@ -102,8 +101,9 @@ describe("routingDecisionToRow: RoutingLogEntry → 行マッピング", () => {
     // 出力・エラー
     expect(row.answerRef).toBe("cafebabecafebabe");
     expect(row.errorCode).toBeNull();
-    // versions/latency
+    // versions/latency（embedModel/latencyEmbed は retrieval が single source）
     expect(row.genModel).toBe("workersai:@cf/google/gemma-4-26b-a4b-it");
+    expect(row.embedModel).toBe("cf:@cf/baai/bge-m3");
     expect(row.latencyEmbed).toBe(320);
     expect(row.latencyGen).toBe(980);
     expect(row.latencyTotal).toBe(1300);

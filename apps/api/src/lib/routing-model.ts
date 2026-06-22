@@ -93,8 +93,9 @@ export interface RoutingDecision {
   // 出力・エラー。
   answerRef: string | null; // 回答本文の sha256 先端（成功時のみ）
   errorCode: string | null; // 429/502/timeout/connrefused/empty 等（成功時 null）
-  versions: { embedModel: string; classifierVersion: string; genModel: string };
-  latencyMs: { embed: number; gen: number; total: number };
+  // embedModel/embed latency は retrieval を single source とする（重複保持しない）。
+  versions: { classifierVersion: string; genModel: string };
+  latencyMs: { gen: number; total: number };
 }
 
 /** 未知 JSON を検証して RoutingModel にする（ロード時の形・次元整合チェック）。 */

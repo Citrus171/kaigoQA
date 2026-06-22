@@ -34,6 +34,7 @@ export function routingDecisionToRow(
     retrievedSrcIds: JSON.stringify(e.retrieval.retrieved.map((r) => r.srcId)),
     retrievedScores: JSON.stringify(e.retrieval.retrieved.map((r) => r.score)),
     latencyEmbed: e.retrieval.latencyEmbed,
+    embedModel: e.retrieval.embedModel, // embedModel は retrieval が single source
     // 段1 Capability Router（ドメイン内のみ LLM 分類。general/エラー時 null）
     // 現在は LLM few-shot 分類のため score/margin/sim は null（将来 埋め込み分類器導入時は埋まる）
     method: e.stage1?.method ?? null,
@@ -52,9 +53,7 @@ export function routingDecisionToRow(
     // 出力・エラー
     answerRef: e.answerRef,
     errorCode: e.errorCode,
-    // versions/latency（エラー時は embed 途中で止まりうる）
-    // latencyEmbed は上記 retrieval.latencyEmbed と同一（schema の latency_embed は1カラム）。
-    embedModel: e.versions.embedModel,
+    // versions/latency。embedModel/latencyEmbed は retrieval を single source とする（上記で記録済み）。
     classifierVersion: e.versions.classifierVersion,
     genModel: e.versions.genModel,
     latencyGen: e.latencyMs.gen,
@@ -69,8 +68,12 @@ export function drizzleRoutingLogger(db: DB): RoutingLogger {
       void (async () => {
         try {
           await db.insert(routingDecisions).values(routingDecisionToRow(e));
-        } catch {
+        } catch (err) {
           // テーブル未作成/DB不調でもリクエストは止めない（観測は best-effort）。
+          // dev では握り潰しに気づけるよう警告（本番ログ汚染を避け production では出さない）。
+          if (process.env.NODE_ENV !== "production") {
+            console.warn(`[routing-observability] insert 失敗（観測のみ・本処理は継続）: ${String(err)}`);
+          }
         }
       })();
     },
