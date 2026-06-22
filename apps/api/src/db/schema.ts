@@ -7,6 +7,7 @@ import {
   real,
   integer,
   vector,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -69,8 +70,9 @@ export const routingDecisions = pgTable(
     // RAG 検索（pgvector retrieval）。ドメイン判定の根拠 + 参照知識の監査。
     topScore: real("top_score"), // retrieval top-1 cosine
     domain: text("domain"), // "in" | "out"（topScore >= RAG_DOMAIN_THRESHOLD で in）
-    retrievedSrcIds: text("retrieved_src_ids"), // JSON配列 ["gold-A-037",...]（srcId のみ）
-    retrievedScores: text("retrieved_scores"), // JSON配列 [0.758,0.705,...]（score 文字列化）
+    // jsonb 配列。集計（jsonb_array_elements で展開し avg/min/max）を素直に書けるようにする。
+    retrievedSrcIds: jsonb("retrieved_src_ids").$type<string[]>(), // ["gold-A-037",...]（srcId のみ）
+    retrievedScores: jsonb("retrieved_scores").$type<number[]>(), // [0.758,0.705,...]
     // 出力・エラー。answerRef は回答本文の sha256 先端（本文は保持しない）。
     answerRef: text("answer_ref"),
     errorCode: text("error_code"), // 429/502/timeout/connrefused/empty 等（成功時 null）

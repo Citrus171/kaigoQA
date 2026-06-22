@@ -31,8 +31,9 @@ export function routingDecisionToRow(
     // 段0 RAG 検索
     topScore: e.retrieval.topScore,
     domain: e.retrieval.domain,
-    retrievedSrcIds: JSON.stringify(e.retrieval.retrieved.map((r) => r.srcId)),
-    retrievedScores: JSON.stringify(e.retrieval.retrieved.map((r) => r.score)),
+    // jsonb 列。配列をそのまま渡す（drizzle が JSON シリアライズ）。
+    retrievedSrcIds: e.retrieval.retrieved.map((r) => r.srcId),
+    retrievedScores: e.retrieval.retrieved.map((r) => r.score),
     latencyEmbed: e.retrieval.latencyEmbed,
     embedModel: e.retrieval.embedModel, // embedModel は retrieval が single source
     // 段1 Capability Router（ドメイン内のみ LLM 分類。general/エラー時 null）
