@@ -65,6 +65,7 @@ export class CfBgeRerankProvider implements RerankProvider {
     }
 
     return response
+      .filter((r) => r.id >= 0 && r.id < chunks.length)
       .map((r) => ({ ...chunks[r.id]!, score: r.score }))
       .sort((a, b) => b.score - a.score)
       .slice(0, topK);

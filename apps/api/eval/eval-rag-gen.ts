@@ -46,6 +46,7 @@ type Row = {
   answer: string;
   verdict: JudgeVerdict | null;
   genFailed: boolean;
+  judgeError: boolean;
 };
 
 async function readJsonl<T>(path: string): Promise<T[]> {
@@ -85,7 +86,7 @@ async function main() {
       console.warn(`\n  [warn] ${item.id} retrieval 失敗: ${(e as Error).message}`);
       rows.push({ id: item.id, category: item.category, real_query: item.real_query,
         route: "retrieval-failed", retrievedN: 0, topScore: 0, topIds: [], correctRank: -1,
-        answer: "", verdict: null, genFailed: true });
+        answer: "", verdict: null, genFailed: true, judgeError: false });
       continue;
     }
     const topIds = hits.map((h) => h.srcId);
@@ -108,25 +109,28 @@ async function main() {
 
     // judge
     let verdict: JudgeVerdict | null = null;
+    let judgeError = false;
     if (!genFailed && answer.trim()) {
       try {
         const refs = refMap.get(item.id) ?? [];
         verdict = await judgeAnswer(judge, item.real_query, answer, refs.length > 0 ? refs : undefined);
       } catch {
         verdict = { factual: false, overreach: false, sufficient: false, category: "refusal", reason: "judge採点不能" };
+        judgeError = true;
       }
     }
 
     rows.push({
       id: item.id, category: item.category, real_query: item.real_query,
       route, retrievedN: hits.length, topScore: hits[0]?.score ?? 0,
-      topIds, correctRank, answer, verdict, genFailed,
+      topIds, correctRank, answer, verdict, genFailed, judgeError,
     });
   }
   process.stdout.write("\n");
 
-  // 集計
-  const judged = rows.filter((r) => r.verdict !== null);
+  // 集計（judge エラーは judged から除外し、別途集計）
+  const judgeErrorCount = rows.filter((r) => r.judgeError).length;
+  const judged = rows.filter((r) => r.verdict !== null && !r.judgeError);
   const good = judged.filter((r) => isGoodAnswer(r.verdict!));
   const cats: Record<FailureCategory, number> = { ok: 0, hallucination: 0, partial: 0, refusal: 0, overreach: 0, outdated: 0 };
   judged.forEach((r) => { cats[r.verdict!.category]++; });
@@ -141,7 +145,7 @@ async function main() {
   const elapsed = ((Date.now() - t0) / 1000).toFixed(0);
 
   console.log(`\n=== 結果 ===`);
-  console.log(`judged: ${judged.length}/${rows.length}`);
+  console.log(`judged: ${judged.length}/${rows.length} (judge_error: ${judgeErrorCount}除外)`);
   console.log(`good: ${good.length}/${judged.length} = ${pct(good.length, judged.length)}`);
   console.log(`カテゴリ内訳: ${catBreakdown.map(([k, n]) => `${k}=${n}`).join(" / ")}`);
   console.log(`route分布: ${Object.entries(routeCounts).map(([k, n]) => `${k}=${n}`).join(" / ")}`);
@@ -150,7 +154,7 @@ async function main() {
   console.log("\n=== 件別 ===");
   rows.forEach((r) => {
     const v = r.verdict;
-    const flag = v ? (isGoodAnswer(v) ? "✓" : "✗") : "E";
+    const flag = v ? (r.judgeError ? "J" : isGoodAnswer(v) ? "✓" : "✗") : "E";
     console.log(`  ${flag} ${r.id} [${r.route}] top1=${r.topScore.toFixed(3)} cat=${v?.category ?? "failed"} reason=${v?.reason ?? r.genFailed ? "gen_failed" : ""}`);
   });
 
@@ -171,6 +175,7 @@ async function main() {
   md.push(`| good rate | ${pct(good.length, judged.length)} (${good.length}/${judged.length}) |`);
   md.push(`| judged | ${judged.length}/${rows.length} |`);
   md.push(`| gen_failed | ${rows.filter((r) => r.genFailed).length} |`);
+  md.push(`| judge_error | ${judgeErrorCount}（judged から除外） |`);
   catBreakdown.forEach(([k, n]) => md.push(`| ${k} | ${n} (${pct(n, judged.length)}) |`));
   md.push("");
   md.push("## route 分布");
@@ -185,7 +190,7 @@ async function main() {
   md.push("|---|---|---|---|---|---|---|---|");
   rows.forEach((r) => {
     const v = r.verdict;
-    const flag = v ? (isGoodAnswer(v) ? "good" : v.category) : "failed";
+    const flag = v ? (r.judgeError ? "judge_error" : isGoodAnswer(v) ? "good" : v.category) : "failed";
     const rankLabel = r.correctRank === -1 ? "圏外" : `top-${r.correctRank + 1}`;
     const top1 = r.topIds[0] ?? "—";
     const top1Mark = top1 === r.id ? "正解" : top1;
@@ -201,7 +206,7 @@ async function main() {
   const jsonlLines = rows.map((r) => JSON.stringify({
     id: r.id, category: r.category, real_query: r.real_query, route: r.route,
     topIds: r.topIds, correctRank: r.correctRank, topScore: r.topScore,
-    verdict: r.verdict, answer: r.answer,
+    verdict: r.verdict, answer: r.answer, judgeError: r.judgeError,
   }));
   await writeFile(OUT_JSONL, jsonlLines.join("\n"), "utf8");
   console.log(`[out] ${OUT_JSONL}`);

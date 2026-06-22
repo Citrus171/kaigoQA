@@ -64,17 +64,19 @@ export async function retrieveTopK(
 
 // ---- A1 hybrid: dense + BM25 → RRF 融合 ----
 
-let hybridRetrieversCache: { dense: DenseRetriever; bm25: Bm25Retriever } | null = null;
+const hybridRetrieversCache = new WeakMap<DB, { dense: DenseRetriever; bm25: Bm25Retriever }>();
 
 async function getHybridRetrievers(db: DB) {
-  if (!hybridRetrieversCache) {
+  let cached = hybridRetrieversCache.get(db);
+  if (!cached) {
     const docs = await loadBm25Docs(db);
-    hybridRetrieversCache = {
+    cached = {
       dense: new DenseRetriever(db),
       bm25: new Bm25Retriever(docs),
     };
+    hybridRetrieversCache.set(db, cached);
   }
-  return hybridRetrieversCache;
+  return cached;
 }
 
 /**
