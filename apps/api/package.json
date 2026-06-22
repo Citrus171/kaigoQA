@@ -34,6 +34,7 @@
     "eval:e2e": "tsx eval/eval-e2e.ts",
     "eval:rejudge": "tsx eval/rejudge.ts",
     "eval:recall": "tsx eval/recall-at-k.ts",
+    "eval:rag-gen": "tsx eval/eval-rag-gen.ts",
     "eval:tokenize": "tsx eval/spike-tokenize.ts",
     "token": "tsx scripts/dev-token.ts",
     "cf:dev": "wrangler dev",
