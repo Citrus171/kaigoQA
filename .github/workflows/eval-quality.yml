@@ -16,9 +16,8 @@
 name: eval-quality
 
 on:
-  schedule:
-    # 毎日 JST 10:00（UTC 01:00）
-    - cron: "0 1 * * *"
+  # schedule:  # VPS セルフホストランナー設定後に再有効化
+  #   - cron: "0 1 * * *"
   workflow_dispatch:
     inputs:
       fn_threshold_pct:
