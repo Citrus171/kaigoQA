@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { useSpeechRecognition, appendText } from "@/lib/speech-recognition";
+import { useSpeechSynthesis } from "@/lib/speech-synthesis";
 import type { AiQaAnswer } from "@hybrid/shared";
 
 // localStorage 保存上限。要件: 過去20件。
@@ -65,11 +67,30 @@ export default function ChatPage() {
   // latest は history[0] の派生。二重 state の同期漏れを防ぐため単一ソースに集約。
   const latest = history[0] ?? null;
 
+  // 音声入力（STT）フック。確定テキストを textarea の末尾に追記する。
+  const stt = useSpeechRecognition({
+    lang: "ja-JP",
+    onFinalText: (text) => {
+      setQuestion((prev) => appendText(prev, text));
+    },
+  });
+
+  // 回答読み上げ（TTS）フック。同時再生は1つ。
+  const tts = useSpeechSynthesis();
+
   // 初回マウントで履歴読み込み。
   useEffect(() => {
     const items = loadHistory();
     setHistory(items);
     setReady(true);
+  }, []);
+
+  // ページ離脱時に読み上げを停止する。
+  useEffect(() => {
+    return () => {
+      tts.cancel();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -112,6 +133,18 @@ export default function ChatPage() {
 
   if (!ready) return null;
 
+  // マイクボタンの表示ラベル・無効状態を STT の状態に応じて決定する
+  const micDisabled =
+    stt.state.status === "unsupported" || stt.state.status === "denied";
+  const micActive = stt.state.status === "listening";
+  const micLabel = micActive ? "■ 停止" : "🎤 音声入力";
+  const micTitle =
+    stt.state.status === "unsupported" || stt.state.status === "denied"
+      ? stt.state.reason
+      : micActive
+        ? "音声入力を停止"
+        : "音声入力を開始";
+
   return (
     <main className="mx-auto mt-16 max-w-2xl px-4">
       <header className="mb-6 flex items-center justify-between">
@@ -138,6 +171,41 @@ export default function ChatPage() {
           className="w-full rounded-md border border-neutral-300 bg-white p-3 text-sm shadow-sm placeholder:text-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={submitting}
         />
+
+        {/* 音声入力コントロール */}
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant={micActive ? "destructive" : "outline"}
+            size="sm"
+            disabled={micDisabled || submitting}
+            title={micTitle}
+            onClick={() => {
+              if (micActive) {
+                stt.stop();
+              } else {
+                stt.start();
+              }
+            }}
+          >
+            {micLabel}
+          </Button>
+
+          {/* 途中経過プレビュー（textarea には入れない）。status で絞って型を確定させる */}
+          {stt.state.status === "listening" && stt.state.interim && (
+            <span className="text-sm text-neutral-400 italic">
+              {stt.state.interim}
+            </span>
+          )}
+
+          {/* 非対応・権限拒否時の理由表示 */}
+          {(stt.state.status === "unsupported" || stt.state.status === "denied") && (
+            <span className="text-xs text-neutral-500">
+              {stt.state.reason}
+            </span>
+          )}
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
         <Button type="submit" disabled={submitting || question.trim() === ""}>
           {submitting ? "送信中..." : "送信"}
@@ -147,7 +215,7 @@ export default function ChatPage() {
       {latest && (
         <section className="mt-8 space-y-3">
           <h2 className="text-lg font-semibold">回答</h2>
-          <AnswerView item={latest} />
+          <AnswerView item={latest} speakingId={tts.speakingId} onToggleTts={tts.toggle} />
         </section>
       )}
 
@@ -159,7 +227,11 @@ export default function ChatPage() {
           <ul className="space-y-4">
             {history.map((item) => (
               <li key={item.id} className="rounded-md border border-neutral-200 p-4">
-                <AnswerView item={item} />
+                <AnswerView
+                  item={item}
+                  speakingId={tts.speakingId}
+                  onToggleTts={tts.toggle}
+                />
               </li>
             ))}
           </ul>
@@ -169,9 +241,19 @@ export default function ChatPage() {
   );
 }
 
-// 回答 + 補助情報を全て表示するビュー。
-function AnswerView({ item }: { item: HistoryItem }) {
+// 回答 + 補助情報を全て表示するビュー。読み上げトグルボタン付き。
+function AnswerView({
+  item,
+  speakingId,
+  onToggleTts,
+}: {
+  item: HistoryItem;
+  speakingId: string | null;
+  onToggleTts: (id: string, text: string) => void;
+}) {
   const { answer } = item;
+  const isPlaying = speakingId === item.id;
+
   return (
     <div className="space-y-3 text-sm">
       <div>
@@ -179,7 +261,18 @@ function AnswerView({ item }: { item: HistoryItem }) {
         <p className="mt-1 whitespace-pre-wrap break-words">{item.question}</p>
       </div>
       <div>
-        <p className="font-medium text-neutral-600">回答</p>
+        {/* 読み上げトグルボタン: 回答見出し付近に配置 */}
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-neutral-600">回答</p>
+          <button
+            type="button"
+            onClick={() => onToggleTts(item.id, answer.answer)}
+            title={isPlaying ? "読み上げを停止" : "回答を読み上げる"}
+            className="rounded px-1.5 py-0.5 text-xs text-neutral-500 hover:bg-neutral-100 transition-colors"
+          >
+            {isPlaying ? "⏹ 停止" : "▶ 読み上げ"}
+          </button>
+        </div>
         <p data-testid="answer-text" className="mt-1 whitespace-pre-wrap break-words">{answer.answer}</p>
       </div>
       <div className="rounded-md bg-neutral-50 p-3 text-xs text-neutral-700">
