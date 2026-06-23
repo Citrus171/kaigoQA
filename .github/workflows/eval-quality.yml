@@ -30,8 +30,8 @@ on:
         default: "95"
         required: false
       fn_e2e_threshold_pct:
-        description: "FN_e2e 上限（%）。超えると FAIL。未指定=100（常にPASS→ベースライン計測のみ）"
-        default: "100"
+        description: "FN_e2e 上限（%）。超えると FAIL。未指定=90（ベースライン86.7%+3pp余裕）"
+        default: "90"
         required: false
 
 permissions:
@@ -90,7 +90,7 @@ jobs:
       # ゲート判定（(b)方針: 閾値 = 現状値ベース。初期は 100% で常に PASS→ベースライン確定後に引き下げ）
       # 測定済みベースライン（2026-06-23）:
       #   FN_mechanical=93.3%（30件中28件が生成帯。grounding④実装後に引き下げ予定）
-      #   FN_e2e=TBD（初回 nightly 実行後に記録・fn_e2e_threshold_pct を引き下げる）
+      #   FN_e2e=86.7%（30件中26件が残存FN。grounding 2件追加捕捉=6.7pp削減）
       #   freshness top-1変化=5.2%（4/77件）
       #   citation 最小完備率=99.9%（mhlw-qa-* 1954件、date欠損1件=mhlw-qa-2081）
       - name: Gate check
