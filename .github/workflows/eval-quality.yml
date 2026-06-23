@@ -10,8 +10,9 @@
 #
 # 必要シークレット:
 #   EVAL_DATABASE_URL : corpusが入った Postgres 接続文字列（k3d/Neon）
-#   CF_ACCOUNT_ID     : Cloudflare Worker AI アカウントID（bge-m3 埋め込み）
+#   CF_ACCOUNT_ID     : Cloudflare Worker AI アカウントID（bge-m3 埋め込み + edge 生成）
 #   CF_API_TOKEN      : Cloudflare API トークン
+#   OPENCODE_API_KEY  : OpenCode LLM（④grounding チェック用）
 name: eval-quality
 
 on:
@@ -27,6 +28,10 @@ on:
       citation_threshold_pct:
         description: "citation メタデータ完備率の下限（%）。未満だと FAIL。未指定=95"
         default: "95"
+        required: false
+      fn_e2e_threshold_pct:
+        description: "FN_e2e 上限（%）。超えると FAIL。未指定=100（常にPASS→ベースライン計測のみ）"
+        default: "100"
         required: false
 
 permissions:
@@ -71,34 +76,58 @@ jobs:
           DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
         run: npm run eval:citation -w @hybrid/api
 
+      # ④ abstain e2e 測定（retrieval + edge生成 + cloud grounding のフル pipeline）
+      #   FN_mechanical（機械閾値のみ）と FN_e2e（grounding後）の差が grounding 削減効果。
+      #   初回 nightly で FN_e2e ベースラインを確定後、fn_e2e_threshold_pct を引き下げる。
+      - name: Eval abstain e2e (grounding effect)
+        env:
+          DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: npm run eval:abstain:e2e -w @hybrid/api
+
       # ゲート判定（(b)方針: 閾値 = 現状値ベース。初期は 100% で常に PASS→ベースライン確定後に引き下げ）
       # 測定済みベースライン（2026-06-23）:
       #   FN_mechanical=93.3%（30件中28件が生成帯。grounding④実装後に引き下げ予定）
-      #   freshness top-1変化=5.2%（4/77件。うち superseded除外=? / freshness_penalty=? は eval-freshness.ts で確認）
+      #   FN_e2e=TBD（初回 nightly 実行後に記録・fn_e2e_threshold_pct を引き下げる）
+      #   freshness top-1変化=5.2%（4/77件）
       #   citation 最小完備率=99.9%（mhlw-qa-* 1954件、date欠損1件=mhlw-qa-2081）
       - name: Gate check
         env:
           FN_THRESHOLD: ${{ github.event.inputs.fn_threshold_pct || '100' }}
           CITATION_THRESHOLD: ${{ github.event.inputs.citation_threshold_pct || '95' }}
+          FN_E2E_THRESHOLD: ${{ github.event.inputs.fn_e2e_threshold_pct || '100' }}
         run: |
           node --input-type=module << 'EOF'
           import { readFileSync } from 'fs';
 
           const abstain = JSON.parse(readFileSync('apps/api/eval/results/eval-abstain-latest.json', 'utf8'));
+          const abstainE2e = JSON.parse(readFileSync('apps/api/eval/results/eval-abstain-e2e-latest.json', 'utf8'));
           const citation = JSON.parse(readFileSync('apps/api/eval/results/eval-citation-latest.json', 'utf8'));
 
           const fnThreshold = Number(process.env.FN_THRESHOLD);
+          const fnE2eThreshold = Number(process.env.FN_E2E_THRESHOLD);
           const citationThreshold = Number(process.env.CITATION_THRESHOLD);
 
           let failed = false;
 
-          // FN ゲート
+          // FN_mechanical ゲート（機械的閾値の回帰検知）
           const fn = abstain.fnMechanicalPct;
           if (fn > fnThreshold) {
             console.error(`[FAIL] FN_mechanical=${fn.toFixed(1)}% > threshold=${fnThreshold}%`);
             failed = true;
           } else {
             console.log(`[PASS] FN_mechanical=${fn.toFixed(1)}% ≤ threshold=${fnThreshold}%`);
+          }
+
+          // FN_e2e ゲート（grounding 込みの実効 FN 回帰検知）
+          const fnE2e = abstainE2e.fnE2ePct;
+          if (fnE2e > fnE2eThreshold) {
+            console.error(`[FAIL] FN_e2e=${fnE2e.toFixed(1)}% > threshold=${fnE2eThreshold}%`);
+            failed = true;
+          } else {
+            console.log(`[PASS] FN_e2e=${fnE2e.toFixed(1)}% ≤ threshold=${fnE2eThreshold}%`);
           }
 
           // citation 品質ゲート（heading/date/source の最小値で判定）
@@ -111,9 +140,12 @@ jobs:
           }
 
           // サマリ出力
+          const freshness = JSON.parse(readFileSync('apps/api/eval/results/eval-freshness-latest.json', 'utf8'));
           console.log(`\n=== eval サマリ ===`);
           console.log(`FN_mechanical: ${fn.toFixed(1)}% (${abstain.fnMechanicalCount}/${abstain.total}件が生成帯)`);
-          console.log(`freshness top-1変化: ${JSON.parse(readFileSync('apps/api/eval/results/eval-freshness-latest.json', 'utf8')).top1ChangedPct.toFixed(1)}%`);
+          console.log(`FN_e2e: ${fnE2e.toFixed(1)}% (${abstainE2e.answeredCount}/${abstainE2e.total}件が残存FN)`);
+          console.log(`  grounding 削減: ${(fn - fnE2e).toFixed(1)} pp (${abstainE2e.groundingAbstainCount}件追加捕捉)`);
+          console.log(`freshness top-1変化: ${freshness.top1ChangedPct.toFixed(1)}%`);
           console.log(`citation 最小完備率: ${citMin.toFixed(1)}%`);
 
           if (failed) process.exit(1);
