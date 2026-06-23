@@ -5,7 +5,7 @@ import { aiQaSchema } from "@/lib/schemas";
 import { authMiddleware } from "@/auth/middleware";
 import { classifyComplexity } from "@/lib/classify";
 import { classifyRoute, buildSystemPrompt } from "@/lib/capability-router";
-import { retrieveTopK, RETRIEVAL_K, type RetrievedChunk } from "@/lib/rag";
+import { retrieveTopK, RETRIEVAL_K, applyFreshness, type RetrievedChunk } from "@/lib/rag";
 import { detectRiskyAssertion, withDisclaimer } from "@/lib/guardrail";
 import { CfBgeM3EmbedProvider } from "@/lib/cf-embed";
 import {
@@ -183,8 +183,8 @@ export async function domainAnswer(
   // classify 呼び出しを全廃(ドメイン質問あたり cloud 呼び出し ~140→~12/135)。
   const decision = await classifyRoute(question, edge);
   const system = buildSystemPrompt(decision.route, hits.map((h) => h.text));
-  // citation: 答案に出典の見出し+発出時期を併記する受け皿。heading/date/source を構造で返す。
-  // 表示フォーマット（令和/西暦変換等）はフロント側で組む（LLM に日付変換を任せると捏造リスク）。
+  // citation: 答案に出典の見出し+発出時期を併記する受け皿。heading/date/source/year を構造で返す。
+  // year は ②鮮度で抽出した西暦（表示用）。表示フォーマットはフロント側で組む（捏造回避）。
   const base = {
     route: decision.route,
     routeReason: decision.reason,
@@ -195,6 +195,7 @@ export async function domainAnswer(
       heading: h.heading ?? undefined,
       date: h.date ?? undefined,
       source: h.source ?? undefined,
+      year: h.year ?? undefined,
     })),
   };
 
@@ -313,10 +314,14 @@ export const aiRoutes = new Hono<AppEnv>()
     } | null = null;
     try {
       const embedStart = Date.now();
-      const hits = await retrieveTopK(c.get("db"), question, RETRIEVAL_K, embedProvider);
+      const rawHits = await retrieveTopK(c.get("db"), question, RETRIEVAL_K, embedProvider);
       retrievalLatency = Date.now() - embedStart;
-      const topScore = hits[0]?.score ?? 0;
+      // ②date鮮度: cosine topScore でドメイン判定（鮮度と無関係）→ applyFreshness で rerank。
+      //   rerank 後 hits を domainAnswer に渡す（同cosine帯で新しい方優先、弱まれば①abstain発火）。
+      //   topScore(観測・ドメイン判定)は rerank 前の cosine を使い、hits は rerank 後を使う。
+      const topScore = rawHits[0]?.score ?? 0;
       const domain: "in" | "out" = topScore < RAG_DOMAIN_THRESHOLD ? "out" : "in";
+      const hits = applyFreshness(rawHits);
       retrievalState = {
         topScore,
         domain,

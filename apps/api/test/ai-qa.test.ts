@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { generalAnswer, domainAnswer, ABSTAIN_THRESHOLD } from "../src/routes/ai";
+import { applyFreshness } from "../src/lib/rag";
 import type { InferProvider } from "../src/lib/inference";
 import type { RetrievedChunk } from "../src/lib/rag";
 import { CONSTANTS_TEXT, KNOWLEDGE_QA_SYSTEM } from "../src/lib/capability-router";
@@ -29,6 +30,62 @@ const hits: RetrievedChunk[] = [
 
 // classifyRoute は分類器プロンプト(「…ルーターです」)を system なしで呼ぶ。生成は system 付き。
 const isClassifierCall = (prompt: string) => prompt.includes("ルーターです");
+
+describe("applyFreshness: date鮮度 rerank（減点 + superseded除外）", () => {
+  const NOW = new Date(2026, 5, 23);
+
+  it("同 cosine で新旧混在 → 新しい方（令和3年=2021）が top-1 に rerank（finalScore でソート）", () => {
+    const hits: RetrievedChunk[] = [
+      { srcId: "old", text: "古い回答", score: 0.70, heading: "同見出し", date: "14.3.28事務連絡運営基準等に係るQ&A" },
+      { srcId: "new", text: "新しい回答", score: 0.70, heading: "同見出し", date: "3.3.26事務連絡介護保険最新情報vol.952「令和3年度" },
+    ];
+    const r = applyFreshness(hits, NOW);
+    expect(r[0]?.srcId).toBe("new");
+    expect(r[0]?.year).toBe(2021);
+    expect(r[1]?.srcId).toBe("old");
+    expect(r[1]?.year).toBe(2002);
+    // score(cosine) は触らない（abstention/citation は cosine で動く）
+    expect(r[0]?.score).toBe(0.70);
+  });
+
+  it("cosine 差が鮮度ペナルティを上回れば古い方が top（過剰rerank回避）", () => {
+    const hits: RetrievedChunk[] = [
+      { srcId: "old-strong", text: "古いが cosine 高", score: 0.90, heading: "h", date: "14.3.28事務連絡" },
+      { srcId: "new-weak", text: "新しいが cosine 低", score: 0.60, heading: "h", date: "3.3.26事務連絡…令和3年度" },
+    ];
+    const r = applyFreshness(hits, NOW);
+    // old finalScore: 0.90*0.7=0.63 / new finalScore: 0.60*0.925=0.555 → old が top
+    expect(r[0]?.srcId).toBe("old-strong");
+  });
+
+  it("superseded 明示マーカー（heading に「削除」）→ 候補から除外", () => {
+    const hits: RetrievedChunk[] = [
+      { srcId: "del", text: "削除されたQ&A", score: 0.80, heading: "某見出し削除", date: "12.4.28事務連絡" },
+      { srcId: "keep", text: "残すべき", score: 0.75, heading: "某見出し", date: "3.3.26事務連絡…令和3年度" },
+    ];
+    const r = applyFreshness(hits, NOW);
+    expect(r.map((h) => h.srcId)).toEqual(["keep"]);
+  });
+
+  it("date null（gold-A系）→ 鮮度不明は減点せず cosine そのまま・year undefined", () => {
+    const hits: RetrievedChunk[] = [
+      { srcId: "gold-A-001", text: "メタなし", score: 0.80 },
+    ];
+    const r = applyFreshness(hits, NOW);
+    expect(r[0]?.score).toBe(0.80);
+    expect(r[0]?.year).toBeUndefined();
+  });
+
+  it("finalScore は cosine*factor で付与（rerank ソート用）", () => {
+    const hits: RetrievedChunk[] = [
+      { srcId: "h", text: "t", score: 0.80, heading: "h", date: "3.3.26事務連絡…令和3年度" },
+    ];
+    const r = applyFreshness(hits, NOW);
+    // factor(2021, 5年) = 0.925 → finalScore = 0.80*0.925 = 0.74。score(cosine) は 0.80 のまま。
+    expect(r[0]?.finalScore).toBeCloseTo(0.74, 2);
+    expect(r[0]?.score).toBe(0.80);
+  });
+});
 
 describe("domainAnswer: abstention（ドメイン内でも top-1 が弱い帯は生成せず断る）", () => {
   // abstain 帯 = θ(0.5) ≤ topScore < ABSTAIN_THRESHOLD。hits の score で直接制御。
