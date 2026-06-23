@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generalAnswer, domainAnswer } from "../src/routes/ai";
+import { generalAnswer, domainAnswer, ABSTAIN_THRESHOLD } from "../src/routes/ai";
 import type { InferProvider } from "../src/lib/inference";
 import type { RetrievedChunk } from "../src/lib/rag";
 import { CONSTANTS_TEXT, KNOWLEDGE_QA_SYSTEM } from "../src/lib/capability-router";
@@ -29,6 +29,121 @@ const hits: RetrievedChunk[] = [
 
 // classifyRoute は分類器プロンプト(「…ルーターです」)を system なしで呼ぶ。生成は system 付き。
 const isClassifierCall = (prompt: string) => prompt.includes("ルーターです");
+
+describe("domainAnswer: abstention（ドメイン内でも top-1 が弱い帯は生成せず断る）", () => {
+  // abstain 帯 = θ(0.5) ≤ topScore < ABSTAIN_THRESHOLD。hits の score で直接制御。
+  // edge/cloud プロバイダは呼ばれないことを検証（生成プロバイダ未呼出＝捏造しない）。
+  const edgeRouter = (route: "escalate" | "knowledge_qa", gen: { text: string; confidence: number }) =>
+    fakeProvider("workersai:gemma", (prompt) =>
+      isClassifierCall(prompt) ? { text: `{"route":"${route}","reason":"r"}`, confidence: 1 } : gen,
+    );
+
+  it("top-1 score < ABSTAIN_THRESHOLD → 生成せず定型文・abstained:true・sources空", async () => {
+    const weakHits: RetrievedChunk[] = [
+      { srcId: "weak-1", text: "関連はするが決定的でない断片", score: ABSTAIN_THRESHOLD - 0.02 },
+      { srcId: "weak-2", text: "同上", score: ABSTAIN_THRESHOLD - 0.05 },
+    ];
+    const { provider: edge, calls: edgeCalls } = edgeRouter("knowledge_qa", { text: "生成されるはずない", confidence: 0.7 });
+    const { provider: cloud, calls: cloudCalls } = fakeProvider("opencode:test", () => ({ text: "同上", confidence: 0.8 }));
+
+    const r = await domainAnswer("令和6年改定の訪問介護の基本報酬単位数", weakHits, edge, cloud);
+
+    expect(r.safety.abstained).toBe(true);
+    expect(r.confidence).toBe(0);
+    expect(r.sources).toEqual([]);
+    expect(r.answer).toContain(AI_DISCLAIMER);
+    expect(r.answer).not.toContain("生成されるはずない");
+    // 分類も生成も一切呼ばれない（abstain は retrieveTopK の結果だけで判定）。
+    expect(edgeCalls).toHaveLength(0);
+    expect(cloudCalls).toHaveLength(0);
+  });
+
+  it("hits が空配列 → abstain（top-1 が存在しない）", async () => {
+    const { provider: edge, calls: edgeCalls } = edgeRouter("knowledge_qa", { text: "x", confidence: 0.7 });
+    const { provider: cloud, calls: cloudCalls } = fakeProvider("opencode:test", () => ({ text: "x", confidence: 0.8 }));
+
+    const r = await domainAnswer("corpus に無い質問", [], edge, cloud);
+
+    expect(r.safety.abstained).toBe(true);
+    expect(r.sources).toEqual([]);
+    expect(edgeCalls).toHaveLength(0);
+    expect(cloudCalls).toHaveLength(0);
+  });
+
+  it("top-1 score >= ABSTAIN_THRESHOLD → 通常生成パスへ（abstained:false）", async () => {
+    const okHits: RetrievedChunk[] = [
+      { srcId: "doc-1", text: "要介護2の区分支給限度基準額は19,705単位/月です。", score: ABSTAIN_THRESHOLD + 0.1 },
+    ];
+    const { provider: edge } = edgeRouter("knowledge_qa", { text: "自己負担割合は所得に応じて1〜3割です。", confidence: 0.7 });
+    const { provider: cloud } = fakeProvider("opencode:test", () => ({ text: "クラウド", confidence: 0.8 }));
+
+    const r = await domainAnswer("自己負担割合はどう決まりますか", okHits, edge, cloud);
+
+    expect(r.safety.abstained).toBe(false);
+    expect(r.sources).toHaveLength(1);
+    // edge は分類+生成の2回（通常パス）。
+  });
+
+  it("abstain 時の safety は disclaimer:true / escalatedByGuardrail:false / reasons:[]", async () => {
+    const weakHits: RetrievedChunk[] = [
+      { srcId: "w", text: "弱い", score: ABSTAIN_THRESHOLD - 0.01 },
+    ];
+    const { provider: edge } = edgeRouter("knowledge_qa", { text: "x", confidence: 0.7 });
+    const { provider: cloud } = fakeProvider("opencode:test", () => ({ text: "x", confidence: 0.8 }));
+
+    const r = await domainAnswer("質問", weakHits, edge, cloud);
+
+    expect(r.safety).toEqual({
+      disclaimer: true,
+      escalatedByGuardrail: false,
+      reasons: [],
+      abstained: true,
+    });
+  });
+});
+
+describe("domainAnswer: citation（sources に heading/date/source を付与）", () => {
+  const edgeRouter = (gen: { text: string; confidence: number }) =>
+    fakeProvider("workersai:gemma", (prompt) =>
+      isClassifierCall(prompt) ? { text: '{"route":"knowledge_qa","reason":"r"}', confidence: 1 } : gen,
+    );
+
+  it("hits が heading/date/source/page を持つ時、sources に付与される", async () => {
+    const richHits: RetrievedChunk[] = [
+      {
+        srcId: "mhlw-qa-0001",
+        text: "常勤換算方法により算定される従業者の取扱いについて",
+        score: ABSTAIN_THRESHOLD + 0.1,
+        heading: "常勤換算方法により算定される従業者の休暇等の取扱い",
+        date: "27.4.1事務連絡介護保険最新情報vol.454",
+        source: "介護サービス関係Q&A集",
+        page: 12,
+      },
+    ];
+    const { provider: edge } = edgeRouter({ text: "回答します。", confidence: 0.7 });
+    const { provider: cloud } = fakeProvider("opencode:test", () => ({ text: "x", confidence: 0.8 }));
+
+    const r = await domainAnswer("常勤換算方法について", richHits, edge, cloud);
+
+    expect(r.sources[0]?.heading).toBe("常勤換算方法により算定される従業者の休暇等の取扱い");
+    expect(r.sources[0]?.date).toContain("27.4.1");
+    expect(r.sources[0]?.source).toBe("介護サービス関係Q&A集");
+  });
+
+  it("hits のメタが null の時、sources は undefined になる（gold-A 系対応）", async () => {
+    const nullHits: RetrievedChunk[] = [
+      { srcId: "gold-A-001", text: "メタなしチャンク", score: ABSTAIN_THRESHOLD + 0.1, heading: null, date: null, source: null, page: null },
+    ];
+    const { provider: edge } = edgeRouter({ text: "回答します。", confidence: 0.7 });
+    const { provider: cloud } = fakeProvider("opencode:test", () => ({ text: "x", confidence: 0.8 }));
+
+    const r = await domainAnswer("質問", nullHits, edge, cloud);
+
+    expect(r.sources[0]?.heading).toBeUndefined();
+    expect(r.sources[0]?.date).toBeUndefined();
+    expect(r.sources[0]?.source).toBeUndefined();
+  });
+});
 
 describe("domainAnswer: ドメイン内(RAG)の route 別生成 + edge cascade", () => {
   // 分類は edge(Workers AI) で行う(latency 律速の cloud 往復を排除)。edge fake は

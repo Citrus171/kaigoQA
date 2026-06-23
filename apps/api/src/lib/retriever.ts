@@ -64,20 +64,37 @@ export function reciprocalRankFusion(
 ): RetrievedChunk[] {
   const scoreMap = new Map<string, number>();
   const textMap = new Map<string, string>();
+  // citation メタ（heading/date/source/page）は srcId 単位で引き継ぐ。
+  // dense 結果にのみ付与される場合が多く、bm25 単独 srcId は undefined になる（optional で許容）。
+  const metaMap = new Map<string, { heading?: string | null; date?: string | null; source?: string | null; page?: number | null }>();
+
+  const merge = (r: RetrievedChunk) => {
+    if (r.heading != null || r.date != null || r.source != null || r.page != null) {
+      const prev = metaMap.get(r.srcId);
+      metaMap.set(r.srcId, {
+        heading: prev?.heading ?? r.heading,
+        date: prev?.date ?? r.date,
+        source: prev?.source ?? r.source,
+        page: prev?.page ?? r.page,
+      });
+    }
+  };
 
   for (let i = 0; i < resultsA.length; i++) {
     const r = resultsA[i]!;
     scoreMap.set(r.srcId, (scoreMap.get(r.srcId) ?? 0) + weightA / (c + i + 1));
     if (r.text) textMap.set(r.srcId, r.text);
+    merge(r);
   }
   for (let i = 0; i < resultsB.length; i++) {
     const r = resultsB[i]!;
     scoreMap.set(r.srcId, (scoreMap.get(r.srcId) ?? 0) + weightB / (c + i + 1));
     if (r.text) textMap.set(r.srcId, r.text);
+    merge(r);
   }
 
   return [...scoreMap.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, k)
-    .map(([srcId, score]) => ({ srcId, text: textMap.get(srcId) ?? "", score }));
+    .map(([srcId, score]) => ({ srcId, text: textMap.get(srcId) ?? "", score, ...metaMap.get(srcId) }));
 }

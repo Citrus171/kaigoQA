@@ -51,7 +51,8 @@ async function embedBatch(texts: string[]): Promise<number[][]> {
 async function main() {
   const txt = await readFile(CHUNKS_PATH, "utf8");
   const chunks = txt.trim().split("\n").map((l) => JSON.parse(l) as {
-    srcId: string; text: string; heading: string; question: string;
+    srcId: string; text: string; heading?: string; question?: string;
+    date?: string; source?: string; page?: number;
   });
   console.log(`chunks to embed: ${chunks.length}`);
 
@@ -71,7 +72,10 @@ async function main() {
   }
 
   // バッチ embedding
-  const embedded: { srcId: string; text: string; vector: number[] }[] = [];
+  const embedded: {
+    srcId: string; text: string; vector: number[];
+    heading?: string; date?: string; source?: string; page?: number;
+  }[] = [];
   for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
     const batch = toInsert.slice(i, i + BATCH_SIZE)!;
     const texts = batch.map((c) => c.text);
@@ -82,6 +86,10 @@ async function main() {
           srcId: batch[j]!.srcId,
           text: batch[j]!.text,
           vector: l2normalize(vecs[j]!),
+          heading: batch[j]!.heading,
+          date: batch[j]!.date,
+          source: batch[j]!.source,
+          page: batch[j]!.page,
         });
       }
     } catch (e) {
@@ -90,7 +98,10 @@ async function main() {
       for (const c of batch) {
         try {
           const [v] = await embedBatch([c.text]);
-          embedded.push({ srcId: c.srcId, text: c.text, vector: l2normalize(v!) });
+          embedded.push({
+            srcId: c.srcId, text: c.text, vector: l2normalize(v!),
+            heading: c.heading, date: c.date, source: c.source, page: c.page,
+          });
         } catch (e2) {
           console.warn(`  [skip] ${c.srcId}: ${(e2 as Error).message}`);
         }
@@ -101,18 +112,21 @@ async function main() {
   }
   console.log(`\nembedded: ${embedded.length}/${toInsert.length}`);
 
-  // DBへ一括挿入（500件ずつ）
+  // DBへ一括挿入（500件ずつ）。heading/date/source/page も格納（citation 用メタ）。
   for (let i = 0; i < embedded.length; i += 500) {
     const batch = embedded.slice(i, i + 500)!;
     const values = batch.map((_, j) =>
-      `($${j * 3 + 1}, $${j * 3 + 2}, $${j * 3 + 3}::vector)`
+      `($${j * 7 + 1}, $${j * 7 + 2}, $${j * 7 + 3}::vector, $${j * 7 + 4}, $${j * 7 + 5}, $${j * 7 + 6}, $${j * 7 + 7})`
     ).join(", ");
-    const params: (string | string)[] = [];
+    const params: (string | number | null)[] = [];
     for (const c of batch) {
-      params.push(c.srcId, c.text, `[${c.vector.join(",")}]`);
+      params.push(
+        c.srcId, c.text, `[${c.vector.join(",")}]`,
+        c.heading ?? null, c.date ?? null, c.source ?? null, c.page ?? null,
+      );
     }
     await client.query(
-      `INSERT INTO rag_chunks (src_id, text, vector) VALUES ${values} ON CONFLICT (src_id) DO NOTHING`,
+      `INSERT INTO rag_chunks (src_id, text, vector, heading, date, source, page) VALUES ${values} ON CONFLICT (src_id) DO NOTHING`,
       params,
     );
     process.stdout.write(`\r  inserted ${Math.min(i + 500, embedded.length)}/${embedded.length}`);

@@ -39,6 +39,16 @@ type AnswerResult = AiQaBody & {
 // 実測（scripts/measure-domain-threshold.ts）: ドメイン内 0.65〜0.72 / 外 0.32〜0.39 → 中点を丸めて 0.5。
 const RAG_DOMAIN_THRESHOLD = 0.5;
 
+// abstention: ドメイン内（topScore≥θ）でも top-1 が弱い「良いチャンクが無い帯」を塞ぐ。
+// θ(0.5) < topScore < ABSTAIN_THRESHOLD の帯で生成せず断る（捏造抑止の本丸）。
+// recall 重視（捏造率最小化）なので初期値は緩め。eval gold（abstain-gold.jsonl）で校正予定。
+// export してテストが閾値校正後も追従できるようにする。
+export const ABSTAIN_THRESHOLD = 0.58;
+
+// abstention 定型文（免責付きで生成）。医療・介護で「嘘」より「わからない」を正とする。
+const ABSTAIN_MESSAGE =
+  "確かな情報が見つかりませんでした。ケアマネジャーや自治体の担当窓口等の専門職にご確認ください。";
+
 // edge SLM が自信を持てる下限。これ未満なら cloud へエスカレーション。
 const EDGE_CONFIDENCE_THRESHOLD = 0.6;
 
@@ -73,6 +83,7 @@ function finalize(opts: {
       disclaimer: true,
       escalatedByGuardrail: opts.escalatedByGuardrail ?? false,
       reasons: opts.reasons ?? [],
+      abstained: false,
     },
   };
 }
@@ -138,12 +149,42 @@ export async function domainAnswer(
   edge: InferProvider,
   cloud: InferProvider,
 ): Promise<AnswerResult> {
+  // abstention: ドメイン内（topScore≥θ）でも top-1 が弱い場合は生成せず断る。
+  // sources は空（弱い断片で不安を煽らない・検証は観測/log層）。confidence=0。
+  // tier="edge"（分類コストは edge 相当で発生）+ safety.abstained=true で判別。
+  // cascade.served="edge" は観測上 abstain を safety.abstained で事後判別可能。
+  if (!hits[0] || hits[0].score < ABSTAIN_THRESHOLD) {
+    return {
+      answer: withDisclaimer(ABSTAIN_MESSAGE),
+      tier: "edge",
+      route: "knowledge_qa",
+      routeReason: "retrieval 弱（top-1 score < ABSTAIN_THRESHOLD）→ abstain",
+      confidence: 0,
+      model: "abstain",
+      sources: [],
+      safety: {
+        disclaimer: true,
+        escalatedByGuardrail: false,
+        reasons: [],
+        abstained: true,
+      },
+      cascade: {
+        served: "edge",
+        edgeConfidence: 0,
+        escalated: false,
+        guardrailEscalated: false,
+      },
+    };
+  }
+
   // 分類は edge(Workers AI) で行う: cloud 往復が latency 律速(p50 4.4s)だったため。
   // gold 135件で edge 分類 escalate recall=5/5(取りこぼし0=安全), 全体 acc 94.8%。
   // 過剰 escalate(FP)は cloud guardrail 生成に回るだけで安全側。これで OpenCode の
   // classify 呼び出しを全廃(ドメイン質問あたり cloud 呼び出し ~140→~12/135)。
   const decision = await classifyRoute(question, edge);
   const system = buildSystemPrompt(decision.route, hits.map((h) => h.text));
+  // citation: 答案に出典の見出し+発出時期を併記する受け皿。heading/date/source を構造で返す。
+  // 表示フォーマット（令和/西暦変換等）はフロント側で組む（LLM に日付変換を任せると捏造リスク）。
   const base = {
     route: decision.route,
     routeReason: decision.reason,
@@ -151,6 +192,9 @@ export async function domainAnswer(
       srcId: h.srcId,
       score: h.score,
       excerpt: h.text.replace(/\s+/g, " ").slice(0, 120),
+      heading: h.heading ?? undefined,
+      date: h.date ?? undefined,
+      source: h.source ?? undefined,
     })),
   };
 
