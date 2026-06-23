@@ -15,3 +15,16 @@
 {"id": "abstain-015", "question": "令和6年度の小規模多機能型居宅介護の夜間訪問介護の単位数はいくらですか", "expected": "abstain", "note": "令和6年改定の夜間訪問介護単位数。corpus範囲外"}
 {"id": "abstain-016", "question": "令和6年改定における特定事業所集中減算の基準値は何パーセントですか", "expected": "abstain", "note": "令和6年改定の減算基準値。corpus範囲外"}
 {"id": "abstain-017", "question": "令和6年度の介護予防支援の委託費の単価はいくらですか", "expected": "abstain", "note": "令和6年度の委託費単価。corpus範囲外"}
+{"id": "abstain-018", "question": "令和6年改定で新設された生産性向上推進体制加算の算定要件と単位数を教えてください", "expected": "abstain", "note": "令和6年改定の新設加算。corpus範囲外。vocabulary重複少（低スコア帯狙い）"}
+{"id": "abstain-019", "question": "令和6年度介護報酬改定における高齢者虐待防止措置未実施減算の減算率はいくらですか", "expected": "abstain", "note": "令和6年改定の新設減算。corpus範囲外。虐待防止の義務化・減算はR6新設"}
+{"id": "abstain-020", "question": "令和6年度改定で義務化されたBCP（業務継続計画）未策定減算の具体的な減算率を教えてください", "expected": "abstain", "note": "令和6年改定のBCP未策定減算。corpus範囲外"}
+{"id": "abstain-021", "question": "令和6年改定で新設されたテクノロジー活用推進加算の対象サービスと要件はどうなっていますか", "expected": "abstain", "note": "令和6年改定の新設加算。corpus範囲外。IT/テクノロジー語彙はR3corpus薄い（低スコア帯狙い）"}
+{"id": "abstain-022", "question": "令和6年度の口腔連携強化加算の算定要件と単位数を教えてください", "expected": "abstain", "note": "令和6年改定の新設加算。corpus範囲外"}
+{"id": "abstain-023", "question": "令和6年改定で変更されたLIFE（科学的介護情報システム）フィードバック活用加算の算定要件はどうなりましたか", "expected": "abstain", "note": "令和6年改定のLIFE要件変更。corpus範囲外"}
+{"id": "abstain-024", "question": "令和6年度の看取り連携体制加算（特定施設）の新設要件と単位数を教えてください", "expected": "abstain", "note": "令和6年改定の看取り連携新加算。corpus範囲外"}
+{"id": "abstain-025", "question": "令和6年改定における栄養マネジメント強化加算の算定要件はどのように変更されましたか", "expected": "abstain", "note": "令和6年改定の加算要件変更。corpusはR3改定時の要件まで"}
+{"id": "abstain-026", "question": "令和6年度の介護職員等処遇改善加算の一本化後の加算率の仕組みを教えてください", "expected": "abstain", "note": "令和6年改定の処遇改善加算一本化。corpus範囲外"}
+{"id": "abstain-027", "question": "令和6年改定で新設された認知症チームケア推進加算の算定要件はどういうものですか", "expected": "abstain", "note": "令和6年改定の新設加算。corpus範囲外"}
+{"id": "abstain-028", "question": "令和6年度の通所介護における生活機能向上連携加算の改定内容を教えてください", "expected": "abstain", "note": "令和6年改定の加算要件変更。corpusはR3改定時の内容まで"}
+{"id": "abstain-029", "question": "令和6年改定後のグループホーム（認知症対応型共同生活介護）の夜間支援体制加算の要件を教えてください", "expected": "abstain", "note": "令和6年改定の要件変更。既存加算の改定（高スコア帯狙い）"}
+{"id": "abstain-030", "question": "令和6年度の特定施設入居者生活介護における看取り介護加算の改定単位数はいくらですか", "expected": "abstain", "note": "令和6年改定の単位数改定。corpusにR3時点の看取り加算情報あり（高スコア帯狙い）"}

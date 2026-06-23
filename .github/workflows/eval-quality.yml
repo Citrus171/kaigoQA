@@ -1,0 +1,128 @@
+# 回答品質 eval（手動 + nightly）。
+# 捏造率（FN）・鮮度ペナルティ影響・citation 構造品質の3測定を行い、ゲート判定する。
+#
+# 設計方針（③eval-ci-gate）:
+#   - 外部API依存（CF埋め込み）は本ワークフロー。純粋計算（freshness数式）は ci.yml
+#   - FNゲート = 現状値を下回らない回帰検知（(b)方針）。初期閾値は計測後に設定する
+#   - DB = EVAL_DATABASE_URL シークレットが必要（corpusが入った Postgres 接続文字列）
+#     ローカル運用: kubectl port-forward -n kaigo postgres-0 5437:5432 後に DATABASE_URL を設定
+#     CI運用: Neon eval ブランチ or セルフホストランナーで k3d へ直接接続
+#
+# 必要シークレット:
+#   EVAL_DATABASE_URL : corpusが入った Postgres 接続文字列（k3d/Neon）
+#   CF_ACCOUNT_ID     : Cloudflare Worker AI アカウントID（bge-m3 埋め込み）
+#   CF_API_TOKEN      : Cloudflare API トークン
+name: eval-quality
+
+on:
+  schedule:
+    # 毎日 JST 10:00（UTC 01:00）
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      fn_threshold_pct:
+        description: "FN_mechanical 上限（%）。超えると FAIL。未指定=100（常にPASS→ベースライン計測のみ）"
+        default: "100"
+        required: false
+      citation_threshold_pct:
+        description: "citation メタデータ完備率の下限（%）。未満だと FAIL。未指定=95"
+        default: "95"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Create eval results dir
+        run: mkdir -p apps/api/eval/results
+
+      # ① FN 率測定（abstain-gold.jsonl 30件 vs ABSTAIN_THRESHOLD）
+      - name: Eval abstain FN rate
+        env:
+          DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: npm run eval:abstain -w @hybrid/api
+
+      # ② freshness rerank 影響（routing-gold-a approved 77件の top-1 変化率）
+      - name: Eval freshness rerank impact
+        env:
+          DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: npm run eval:freshness -w @hybrid/api
+
+      # ③ citation 構造品質（rag_chunks 全件の heading/date/source/year 欠損率）
+      - name: Eval citation structure
+        env:
+          DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+        run: npm run eval:citation -w @hybrid/api
+
+      # ゲート判定（(b)方針: 閾値 = 現状値ベース。初期は 100% で常に PASS→ベースライン確定後に引き下げ）
+      # 測定済みベースライン（2026-06-23）:
+      #   FN_mechanical=93.3%（30件中28件が生成帯。grounding④実装後に引き下げ予定）
+      #   freshness top-1変化=5.2%（4/77件。うち superseded除外=? / freshness_penalty=? は eval-freshness.ts で確認）
+      #   citation 最小完備率=99.9%（mhlw-qa-* 1954件、date欠損1件=mhlw-qa-2081）
+      - name: Gate check
+        env:
+          FN_THRESHOLD: ${{ github.event.inputs.fn_threshold_pct || '100' }}
+          CITATION_THRESHOLD: ${{ github.event.inputs.citation_threshold_pct || '95' }}
+        run: |
+          node --input-type=module << 'EOF'
+          import { readFileSync } from 'fs';
+
+          const abstain = JSON.parse(readFileSync('apps/api/eval/results/eval-abstain-latest.json', 'utf8'));
+          const citation = JSON.parse(readFileSync('apps/api/eval/results/eval-citation-latest.json', 'utf8'));
+
+          const fnThreshold = Number(process.env.FN_THRESHOLD);
+          const citationThreshold = Number(process.env.CITATION_THRESHOLD);
+
+          let failed = false;
+
+          // FN ゲート
+          const fn = abstain.fnMechanicalPct;
+          if (fn > fnThreshold) {
+            console.error(`[FAIL] FN_mechanical=${fn.toFixed(1)}% > threshold=${fnThreshold}%`);
+            failed = true;
+          } else {
+            console.log(`[PASS] FN_mechanical=${fn.toFixed(1)}% ≤ threshold=${fnThreshold}%`);
+          }
+
+          // citation 品質ゲート（heading/date/source の最小値で判定）
+          const citMin = Math.min(citation.headingPct, citation.datePct, citation.sourcePct);
+          if (citMin < citationThreshold) {
+            console.error(`[FAIL] citation min=${citMin.toFixed(1)}% < threshold=${citationThreshold}%`);
+            failed = true;
+          } else {
+            console.log(`[PASS] citation min=${citMin.toFixed(1)}% ≥ threshold=${citationThreshold}%`);
+          }
+
+          // サマリ出力
+          console.log(`\n=== eval サマリ ===`);
+          console.log(`FN_mechanical: ${fn.toFixed(1)}% (${abstain.fnMechanicalCount}/${abstain.total}件が生成帯)`);
+          console.log(`freshness top-1変化: ${JSON.parse(readFileSync('apps/api/eval/results/eval-freshness-latest.json', 'utf8')).top1ChangedPct.toFixed(1)}%`);
+          console.log(`citation 最小完備率: ${citMin.toFixed(1)}%`);
+
+          if (failed) process.exit(1);
+          EOF
+
+      - name: Upload eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-${{ github.run_id }}
+          path: apps/api/eval/results/
+          retention-days: 30
