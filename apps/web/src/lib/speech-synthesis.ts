@@ -111,15 +111,23 @@ export function createWebSpeechSynthesisDriver(): SpeechSynthesisDriver | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
   const synth = window.speechSynthesis;
 
+  // Chrome 系は getVoices() が初回空配列を返し、voiceschanged イベント後に揃う。
+  // ドライバー生成時にイベントを購読してキャッシュし、speak() から参照することで
+  // 初回再生でも ja 音声が確実に選ばれるようにする。
+  let cachedVoices: SpeechSynthesisVoice[] = synth.getVoices();
+  const onVoicesChanged = () => {
+    cachedVoices = synth.getVoices();
+  };
+  synth.addEventListener("voiceschanged", onVoicesChanged);
+
   return {
     speak(text: string, lang: string, onEnd: () => void) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
       utterance.rate = 1.0;
 
-      // ja-JP の既定音声を選択。取得できなければブラウザが自動選択する。
-      const voices = synth.getVoices();
-      const jaVoice = voices.find((v) => v.lang.startsWith("ja"));
+      // キャッシュから ja 音声を選択。voiceschanged 前でも再生は可能（lang 指定でフォールバック）。
+      const jaVoice = cachedVoices.find((v) => v.lang.startsWith("ja"));
       if (jaVoice) utterance.voice = jaVoice;
 
       utterance.onend = onEnd;

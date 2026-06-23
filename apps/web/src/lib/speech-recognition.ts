@@ -174,10 +174,18 @@ export function createWebSpeechDriver(lang: string): SpeechRecognitionDriver | n
 // フック（public API）
 // ──────────────────────────────────────────────────────────────────────────────
 
+// 無音タイムアウト等でユーザーの意図せず認識が停止したときの案内文。
+// フェーズ1 は自動再開しない（Web Speech の再開は実 Chrome で数十秒の遅延があり実用にならない）。
+// 認識済みテキストは textarea に残るので、ユーザーはマイクを再度押して続行する。
+// 滑らかな連続口述はフェーズ2（faster-whisper）で対応する。
+export const AUTO_STOP_NOTICE =
+  "音声入力が停止しました。続けるにはマイクボタンをもう一度押してください。";
+
 export type SpeechRecognitionState =
   | { status: "unsupported"; reason: string }
   | { status: "denied"; reason: string }
-  | { status: "idle" }
+  // notice: 無音タイムアウト等で自動停止したときの案内（ユーザー停止時は undefined）
+  | { status: "idle"; notice?: string }
   | { status: "listening"; interim: string };
 
 /**
@@ -210,6 +218,13 @@ export function useSpeechRecognition(opts: {
   // onFinalText は render ごとに変わりうるので ref で保持して古い参照を回避する
   const onFinalTextRef = useRef(opts.onFinalText);
   onFinalTextRef.current = opts.onFinalText;
+
+  /** ユーザーが明示的に stop() を呼んだか。onEnd で「案内を出すか（自動停止）/出さないか（ユーザー停止）」を分ける */
+  const intentRef = useRef(false);
+  /** 直前の onError が denied だったか。onEnd で denied を上書きしないために参照する */
+  const deniedRef = useRef(false);
+  /** アンマウント済みフラグ。クリーンアップ後のコールバック呼出を防ぐ */
+  const unmountedRef = useRef(false);
 
   useEffect(() => {
     let driver: SpeechRecognitionDriver | null;
@@ -259,22 +274,31 @@ export function useSpeechRecognition(opts: {
     driver.onError((reason) => {
       if (isTerminalRecognitionError(reason)) {
         // 権限拒否は終端。ドライバーを破棄して denied 表示。
+        deniedRef.current = true;
         driverRef.current = null;
         setState({ status: "denied", reason: "マイクへのアクセスが拒否されました" });
-      } else {
-        // no-speech / aborted / network 等の一時的エラー。
-        // 同一 SpeechRecognition インスタンスは再 start() 可能なので破棄しない
-        // （破棄すると start() が no-op になり、2回目以降マイクが反応しなくなる）。
-        setState((prev) => (prev.status === "listening" ? { status: "idle" } : prev));
       }
+      // no-speech / aborted / network 等の一時的エラーはドライバーを破棄しない
+      // （破棄すると start() が no-op になり2回目以降反応しなくなる）。
+      // 状態遷移は後続の onEnd に委ねる。
     });
     driver.onEnd(() => {
-      // continuous モードではネットワーク中断等で onend が来る場合がある
-      setState((prev) => (prev.status === "listening" ? { status: "idle" } : prev));
+      // アンマウント後は無視（React 外のコールバックが遅延して届く場合）
+      if (unmountedRef.current) return;
+      // denied は onError で確定済み。onEnd で idle に戻して上書きしない。
+      if (deniedRef.current) return;
+      // 自動再開はしない。ユーザー停止なら無言で idle、
+      // 無音タイムアウト等の意図しない停止なら案内を出して再タップを促す。
+      // 認識済みテキストは textarea に残っているため失われない。
+      setState({
+        status: "idle",
+        notice: intentRef.current ? undefined : AUTO_STOP_NOTICE,
+      });
     });
 
     return () => {
-      // アンマウント時にドライバーへの参照を切る（コールバックが React 外で呼ばれても無害）
+      // アンマウント時: 参照を切る（以降のコールバックは unmountedRef で除外）
+      unmountedRef.current = true;
       driverRef.current = null;
     };
     // lang は初期化時にのみ使用する（変更時の再初期化は不要）
@@ -284,14 +308,22 @@ export function useSpeechRecognition(opts: {
   const start = () => {
     const driver = driverRef.current;
     if (!driver) return;
+    // ユーザーが明示的に開始: 停止フラグをリセットしてから開始
+    intentRef.current = false;
     setState({ status: "listening", interim: "" });
-    driver.start();
+    try {
+      driver.start();
+    } catch {
+      // 既に認識中の InvalidStateError 等は無害（listening 表示のまま継続）
+    }
   };
 
   const stop = () => {
     const driver = driverRef.current;
     if (!driver) return;
-    // onend イベントでも idle に戻るが、先行更新で即時 UI 反映する
+    // ユーザー停止フラグを立てる（onEnd で案内を出さない＝無言で idle）
+    intentRef.current = true;
+    // onend でも idle に戻るが、先行更新で即時 UI 反映する
     setState({ status: "idle" });
     driver.stop();
   };

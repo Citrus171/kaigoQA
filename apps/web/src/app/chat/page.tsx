@@ -144,6 +144,9 @@ export default function ChatPage() {
       : micActive
         ? "音声入力を停止"
         : "音声入力を開始";
+  // 無音タイムアウト等で自動停止したときの案内（ユーザー停止時は出ない）
+  const micNotice =
+    stt.state.status === "idle" ? stt.state.notice : undefined;
 
   return (
     <main className="mx-auto mt-16 max-w-2xl px-4">
@@ -199,10 +202,16 @@ export default function ChatPage() {
           )}
 
           {/* 非対応・権限拒否時の理由表示 */}
-          {(stt.state.status === "unsupported" || stt.state.status === "denied") && (
+          {(stt.state.status === "unsupported" ||
+            stt.state.status === "denied") && (
             <span className="text-xs text-neutral-500">
               {stt.state.reason}
             </span>
+          )}
+
+          {/* 無音タイムアウト等で自動停止したときの案内（再タップ促し） */}
+          {micNotice && (
+            <span className="text-xs text-amber-600">{micNotice}</span>
           )}
         </div>
 
