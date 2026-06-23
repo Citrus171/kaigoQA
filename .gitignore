@@ -37,6 +37,9 @@ docs/
 !apps/api/eval/out/
 !apps/api/eval/out/**
 
+# eval 実行結果（非決定的・再生成可。JSON サマリは eval/results/ に書き出す）
+apps/api/eval/results/
+
 # E2E eval 実行成果物（非決定的・大きい。再生成可）
 apps/api/eval/data/e2e-*.jsonl
 

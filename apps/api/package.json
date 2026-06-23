@@ -37,6 +37,10 @@
     "eval:recall": "tsx eval/recall-at-k.ts",
     "eval:rag-gen": "tsx eval/eval-rag-gen.ts",
     "eval:tokenize": "tsx eval/spike-tokenize.ts",
+    "eval:abstain": "tsx scripts/eval-abstain.ts",
+    "eval:freshness": "tsx scripts/eval-freshness.ts",
+    "eval:freshness:sweep": "tsx scripts/eval-freshness-cap-sweep.ts",
+    "eval:citation": "tsx scripts/eval-citation.ts",
     "token": "tsx scripts/dev-token.ts",
     "cf:dev": "wrangler dev",
     "cf:deploy": "wrangler deploy"
