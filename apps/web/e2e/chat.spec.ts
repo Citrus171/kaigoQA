@@ -16,7 +16,7 @@ const mockAnswer: AiQaAnswer = {
   confidence: 0.85,
   model: "mock:model-x",
   sources: [{ srcId: "doc-1", score: 0.9, excerpt: "要介護2の区分支給限度基準額は19,705単位/月です。" }],
-  safety: { disclaimer: true, escalatedByGuardrail: false, reasons: [], abstained: false },
+  safety: { disclaimer: true, escalatedByGuardrail: false, reasons: [], abstained: false, grounded: true },
   topScore: 0.72,
   latencyMs: 123,
 };

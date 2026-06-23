@@ -155,7 +155,48 @@ describe("domainAnswer: abstention（ドメイン内でも top-1 が弱い帯は
       escalatedByGuardrail: false,
       reasons: [],
       abstained: true,
+      grounded: null, // 機械的 abstain は grounding 未実施
     });
+  });
+
+  it("④grounding: cloud が UNGROUNDED を返す → abstained:true・grounded:false・sources空", async () => {
+    const okHits: RetrievedChunk[] = [
+      { srcId: "doc-1", text: "要介護2の区分支給限度基準額は19,705単位/月です。", score: ABSTAIN_THRESHOLD + 0.1 },
+    ];
+    const { provider: edge } = fakeProvider("workersai:gemma", (prompt) =>
+      isClassifierCall(prompt)
+        ? { text: '{"route":"knowledge_qa","reason":"r"}', confidence: 1 }
+        : { text: "RAGに無い情報を含む回答", confidence: 0.7 },
+    );
+    // cloud は grounding チェック専用。UNGROUNDED を返す = コンテキスト非支持と判定。
+    const { provider: cloud } = fakeProvider("opencode:test", () => ({ text: "UNGROUNDED", confidence: 1 }));
+
+    const r = await domainAnswer("令和6年改定の新設加算はいくらですか", okHits, edge, cloud);
+
+    expect(r.safety.abstained).toBe(true);
+    expect(r.safety.grounded).toBe(false);
+    expect(r.safety.reasons).toContain("grounding:not_grounded");
+    expect(r.sources).toEqual([]);
+    expect(r.confidence).toBe(0);
+    expect(r.answer).toContain("確かな情報が見つかりませんでした");
+  });
+
+  it("④grounding: cloud が GROUNDED を返す → abstained:false・grounded:true・通常回答", async () => {
+    const okHits: RetrievedChunk[] = [
+      { srcId: "doc-1", text: "要介護2の区分支給限度基準額は19,705単位/月です。", score: ABSTAIN_THRESHOLD + 0.1 },
+    ];
+    const { provider: edge } = fakeProvider("workersai:gemma", (prompt) =>
+      isClassifierCall(prompt)
+        ? { text: '{"route":"knowledge_qa","reason":"r"}', confidence: 1 }
+        : { text: "19,705単位です。", confidence: 0.7 },
+    );
+    const { provider: cloud } = fakeProvider("opencode:test", () => ({ text: "GROUNDED", confidence: 1 }));
+
+    const r = await domainAnswer("要介護2の区分支給限度基準額は？", okHits, edge, cloud);
+
+    expect(r.safety.abstained).toBe(false);
+    expect(r.safety.grounded).toBe(true);
+    expect(r.sources).toHaveLength(1);
   });
 });
 
@@ -260,8 +301,8 @@ describe("domainAnswer: ドメイン内(RAG)の route 別生成 + edge cascade",
     expect(edgeCalls).toHaveLength(2);
     expect(edgeCalls[1]?.system?.startsWith(KNOWLEDGE_QA_SYSTEM)).toBe(true);
     expect(edgeCalls[1]?.system).not.toContain(CONSTANTS_TEXT);
-    // cloud は分類にも生成にも使われない(OpenCode 呼び出しゼロ)。
-    expect(cloudCalls).toHaveLength(0);
+    // ④grounding: cloud は grounding チェック1回のみ（生成には不使用）。
+    expect(cloudCalls).toHaveLength(1);
     expect(r.safety.escalatedByGuardrail).toBe(false);
     expect(r.safety.reasons).toEqual([]);
     expect(r.sources).toHaveLength(2);
@@ -284,7 +325,7 @@ describe("domainAnswer: ドメイン内(RAG)の route 別生成 + edge cascade",
     expect(r.model).toBe("opencode:test");
     expect(r.confidence).toBe(0.8);
     expect(edgeCalls).toHaveLength(2); // 分類 + 退化した一次生成
-    expect(cloudCalls).toHaveLength(1); // fallback 生成のみ
+    expect(cloudCalls).toHaveLength(2); // fallback 生成 + ④grounding チェック
     expect(cloudCalls[0]?.system?.startsWith(KNOWLEDGE_QA_SYSTEM)).toBe(true);
     expect(r.safety.escalatedByGuardrail).toBe(false); // 退化は guardrail 起因ではない
     expect(r.sources).toHaveLength(2);
@@ -304,7 +345,7 @@ describe("domainAnswer: ドメイン内(RAG)の route 別生成 + edge cascade",
 
     expect(r.tier).toBe("cloud");
     expect(edgeCalls).toHaveLength(2); // 分類 + 危険な一次生成
-    expect(cloudCalls).toHaveLength(1); // fallback 生成のみ
+    expect(cloudCalls).toHaveLength(2); // fallback 生成 + ④grounding チェック
     expect(r.safety.escalatedByGuardrail).toBe(true);
     expect(r.safety.reasons).toContain("legal:legality");
   });

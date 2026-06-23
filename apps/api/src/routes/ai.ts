@@ -7,6 +7,7 @@ import { classifyComplexity } from "@/lib/classify";
 import { classifyRoute, buildSystemPrompt } from "@/lib/capability-router";
 import { retrieveTopK, RETRIEVAL_K, applyFreshness, type RetrievedChunk } from "@/lib/rag";
 import { detectRiskyAssertion, withDisclaimer } from "@/lib/guardrail";
+import { checkGrounding } from "@/lib/grounding";
 import { CfBgeM3EmbedProvider } from "@/lib/cf-embed";
 import {
   InferenceError,
@@ -70,6 +71,7 @@ function finalize(opts: {
   sources: AiSource[];
   escalatedByGuardrail?: boolean;
   reasons?: string[];
+  grounded?: boolean | null;
 }): AiQaBody {
   return {
     answer: withDisclaimer(opts.text),
@@ -84,6 +86,7 @@ function finalize(opts: {
       escalatedByGuardrail: opts.escalatedByGuardrail ?? false,
       reasons: opts.reasons ?? [],
       abstained: false,
+      grounded: opts.grounded ?? null,
     },
   };
 }
@@ -153,6 +156,7 @@ export async function domainAnswer(
   // sources は空（弱い断片で不安を煽らない・検証は観測/log層）。confidence=0。
   // tier="edge"（分類コストは edge 相当で発生）+ safety.abstained=true で判別。
   // cascade.served="edge" は観測上 abstain を safety.abstained で事後判別可能。
+  // grounded=null: grounding チェック未実施（機械的 abstain 段階でブロック）。
   if (!hits[0] || hits[0].score < ABSTAIN_THRESHOLD) {
     return {
       answer: withDisclaimer(ABSTAIN_MESSAGE),
@@ -167,6 +171,7 @@ export async function domainAnswer(
         escalatedByGuardrail: false,
         reasons: [],
         abstained: true,
+        grounded: null,
       },
       cascade: {
         served: "edge",
@@ -210,6 +215,7 @@ export async function domainAnswer(
         model: cloud.name,
         escalatedByGuardrail: true,
         reasons: ["個別ケースの数値結果は一意に確定しないため guardrail 生成"],
+        grounded: null, // escalate は guardrail 生成。grounding 適用外。
       }),
       // escalate は意図的エスカレーション（cascade 非発火）。guardrail 生成扱い。
       cascade: { served: "cloud", edgeConfidence: r.confidence, escalated: false, guardrailEscalated: true },
@@ -220,6 +226,28 @@ export async function domainAnswer(
   const slm = await edge.infer(question, system);
   const guard = detectRiskyAssertion(slm.text);
   if (slm.confidence >= EDGE_CONFIDENCE_THRESHOLD && !guard.risky) {
+    // ④ LLM grounding: 生成済み回答が RAG コンテキストに支持されているか cloud で確認。
+    // 支持されていなければ ABSTAIN_MESSAGE に差し替え（grounded:false/abstained:true）。
+    const grounded = await checkGrounding(question, slm.text, hits.map((h) => h.text), cloud);
+    if (!grounded) {
+      return {
+        answer: withDisclaimer(ABSTAIN_MESSAGE),
+        tier: "edge",
+        route: "knowledge_qa",
+        routeReason: "grounding 失敗（RAGコンテキスト非支持）→ abstain",
+        confidence: 0,
+        model: "abstain/grounding",
+        sources: [],
+        safety: {
+          disclaimer: true,
+          escalatedByGuardrail: false,
+          reasons: ["grounding:not_grounded"],
+          abstained: true,
+          grounded: false,
+        },
+        cascade: { served: "edge", edgeConfidence: slm.confidence, escalated: false, guardrailEscalated: false },
+      };
+    }
     return {
       ...finalize({
         ...base,
@@ -227,12 +255,39 @@ export async function domainAnswer(
         tier: "edge",
         confidence: slm.confidence,
         model: edge.name,
+        grounded: true,
       }),
       cascade: { served: "edge", edgeConfidence: slm.confidence, escalated: false, guardrailEscalated: false },
     };
   }
   // 退化 or 危険な断定 → cloud へ fallback。
   const r = await cloud.infer(question, system);
+  // ④ LLM grounding: cloud fallback 後も grounding 確認。
+  const grounded = await checkGrounding(question, r.text, hits.map((h) => h.text), cloud);
+  if (!grounded) {
+    return {
+      answer: withDisclaimer(ABSTAIN_MESSAGE),
+      tier: "cloud",
+      route: "knowledge_qa",
+      routeReason: "grounding 失敗（RAGコンテキスト非支持）→ abstain",
+      confidence: 0,
+      model: "abstain/grounding",
+      sources: [],
+      safety: {
+        disclaimer: true,
+        escalatedByGuardrail: false,
+        reasons: ["grounding:not_grounded"],
+        abstained: true,
+        grounded: false,
+      },
+      cascade: {
+        served: "cloud",
+        edgeConfidence: slm.confidence,
+        escalated: slm.confidence < EDGE_CONFIDENCE_THRESHOLD,
+        guardrailEscalated: guard.risky,
+      },
+    };
+  }
   return {
     ...finalize({
       ...base,
@@ -242,6 +297,7 @@ export async function domainAnswer(
       model: cloud.name,
       escalatedByGuardrail: guard.risky,
       reasons: guard.reasons,
+      grounded: true,
     }),
     cascade: {
       served: "cloud",

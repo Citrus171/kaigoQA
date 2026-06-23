@@ -24,11 +24,16 @@ export const aiTierSchema = z.enum(["edge", "cloud"]);
 
 // 出力ガードレール(Layer2)の結果。免責付与の有無・断定検知でのエスカレ有無・検知理由。
 // abstained: 弱い検索(top-1 score < ABSTAIN_THRESHOLD)で生成せず断った。捏造抑止の本丸。
+// grounded: LLM grounding チェックの結果（④実装後）。
+//   true  = RAGコンテキストに支持された回答と判定。
+//   false = コンテキスト非支持 → abstain に差し替え。
+//   null  = 適用外（general経路・escalate・機械的abstain）。
 export const aiSafetySchema = z.object({
   disclaimer: z.boolean(),
   escalatedByGuardrail: z.boolean(),
   reasons: z.array(z.string()),
   abstained: z.boolean(),
+  grounded: z.boolean().nullable(),
 });
 
 // 統合 AI 入口（/ai/qa）の質問リクエスト。ドメイン判定 → ルーティングで答える。
