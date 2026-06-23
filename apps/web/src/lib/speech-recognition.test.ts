@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { appendText, detectSpeechRecognitionStatus } from "./speech-recognition";
+import {
+  appendText,
+  detectSpeechRecognitionStatus,
+  isTerminalRecognitionError,
+} from "./speech-recognition";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // appendText: 確定テキスト追記ロジック
@@ -82,5 +86,21 @@ describe("detectSpeechRecognitionStatus", () => {
       isSecureContext: false,
     });
     expect(result.ok).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// isTerminalRecognitionError: エラー時にドライバーを破棄すべきか
+// 回帰: 一時的エラー（"other"）で破棄すると2回目以降マイクが反応しなくなるバグ
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe("isTerminalRecognitionError", () => {
+  it("denied（権限拒否）は終端＝ドライバー破棄", () => {
+    expect(isTerminalRecognitionError("denied")).toBe(true);
+  });
+
+  it("other（no-speech / aborted / network 等）は終端でない＝ドライバー保持し再利用可能", () => {
+    // false でなければ、1度目の発話後の transient error でマイクが死ぬ回帰が再発する
+    expect(isTerminalRecognitionError("other")).toBe(false);
   });
 });

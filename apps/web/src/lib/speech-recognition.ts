@@ -90,6 +90,16 @@ export function detectSpeechRecognitionStatus(env: {
   return { ok: true };
 }
 
+/**
+ * 認識エラーが「終端（=ドライバー破棄して回復不能）」か判定する。
+ * - "denied"（権限拒否）のみ終端。再開してもブラウザが許可しないため破棄する。
+ * - "other"（no-speech / aborted / network 等）は一時的。ドライバーは再利用でき、
+ *   破棄すると start() が no-op 化して2回目以降マイクが反応しなくなる。
+ */
+export function isTerminalRecognitionError(reason: "denied" | "other"): boolean {
+  return reason === "denied";
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Web Speech API 実装（本番用ドライバーファクトリー）
 // ──────────────────────────────────────────────────────────────────────────────
@@ -247,12 +257,16 @@ export function useSpeechRecognition(opts: {
       );
     });
     driver.onError((reason) => {
-      driverRef.current = null;
-      setState(
-        reason === "denied"
-          ? { status: "denied", reason: "マイクへのアクセスが拒否されました" }
-          : { status: "idle" },
-      );
+      if (isTerminalRecognitionError(reason)) {
+        // 権限拒否は終端。ドライバーを破棄して denied 表示。
+        driverRef.current = null;
+        setState({ status: "denied", reason: "マイクへのアクセスが拒否されました" });
+      } else {
+        // no-speech / aborted / network 等の一時的エラー。
+        // 同一 SpeechRecognition インスタンスは再 start() 可能なので破棄しない
+        // （破棄すると start() が no-op になり、2回目以降マイクが反応しなくなる）。
+        setState((prev) => (prev.status === "listening" ? { status: "idle" } : prev));
+      }
     });
     driver.onEnd(() => {
       // continuous モードではネットワーク中断等で onend が来る場合がある
