@@ -21,6 +21,7 @@ import {
   type RerankProvider,
 } from "@/lib/retriever";
 import { loadBm25Docs } from "@/db/rag-chunks-loader";
+import { freshnessFactor, isSuperseded, extractYear } from "@/lib/freshness";
 
 export type RetrievedChunk = {
   srcId: string;
@@ -32,6 +33,12 @@ export type RetrievedChunk = {
   date?: string | null;
   source?: string | null;
   page?: number | null;
+  // ②date鮮度: 発出年（西暦）。applyFreshness で date から抽出して付与。
+  // citation 表示の「発出時期」に使い、LLM に日付変換を委ねない（捏造回避）。
+  year?: number;
+  // ②date鮮度: cosine*鮮度係数。rerank ソート用のみ。abstention/citation/観測は
+  // score(cosine) を使う（①の挙動を維持・鮮度で誤 abstain しない）。
+  finalScore?: number;
 };
 
 /** retrieval 既定 k（real-query eval で @5=96.2% / @3=80.8% から 5 に変更）。 */
@@ -129,4 +136,33 @@ export async function retrieveHybridWithRerank(
 ): Promise<RetrievedChunk[]> {
   const candidates = await retrieveHybrid(db, query, nCandidates, nCandidates, rrfC, weightDense, weightBm25);
   return reranker.rerank(query, candidates, k);
+}
+
+// ---- ②date鮮度: cosine score に鮮度ペナルティを掛けて rerank ----
+
+/**
+ * retrieval 結果に date 鮮度を反映して rerank する（減点方式）。
+ *
+ * finalScore = cosine * freshnessFactor(date) で並べ替え、score(cosine) は触らない。
+ *   - 同 cosine 帯で新しい方を上位に。古いチャンクしか無ければ古い方で答える（空振りよりマシ）。
+ *   - score(cosine) を維持するため abstention(①)/citation/観測 は cosine のまま動く
+ *     （鮮度で誤 abstain しない＝古くても有効な知識を弾かない）。
+ *
+ * superseded（明示マーカー: heading/date に「削除」「廃止」「追補版の修正」含む）は候補から除外。
+ *
+ * @returns rerank 済み hits（score=cosine そのまま・finalScore=cosine*factor でソート・year付与）。
+ */
+export function applyFreshness(
+  hits: RetrievedChunk[],
+  now: Date = new Date(),
+): RetrievedChunk[] {
+  // superseded 明示マーカーを除外（機械的同一heading新旧は誤爆リスクで不使用）。
+  const kept = hits.filter((h) => !isSuperseded(h.heading, h.date));
+  return kept
+    .map((h) => {
+      const year = extractYear(h.date) ?? undefined;
+      const factor = freshnessFactor(h.date, now);
+      return { ...h, year, finalScore: h.score * factor };
+    })
+    .sort((a, b) => (b.finalScore ?? 0) - (a.finalScore ?? 0));
 }

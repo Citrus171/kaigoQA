@@ -47,10 +47,10 @@ export const aiQaSchema = z.object({
 export const aiRouteSchema = z.enum(["knowledge_qa", "escalate", "general"]);
 
 // RAG で参照したコーパスチャンク（出典）。score はコサイン類似（正規化済み内積）。
-// citation: heading（項目見出し）+ date（事務連絡タイトル・発出時期含む）+ source（文書名）。
+// citation: heading（項目見出し）+ date（事務連絡タイトル・発出時期含む）+ source（文書名）+ year（発出年西暦）。
 //   これらは mhlw PDF 由来チャンクのみ付与（gold-A 系は未付与→optional）。
 //   表示フォーマット（令和/西暦変換等）は API 側では行わず、フロントが構造から組む
-//   （LLM に日付変換を任せると捏造リスク）。
+//   （LLM に日付変換を任せると捏造リスク）。year は ②鮮度で抽出した西暦数値（表示用）。
 export const aiSourceSchema = z.object({
   srcId: z.string(),
   score: z.number(),
@@ -58,6 +58,7 @@ export const aiSourceSchema = z.object({
   heading: z.string().optional(),
   date: z.string().optional(),
   source: z.string().optional(),
+  year: z.number().optional(),
 });
 
 export const aiQaAnswerSchema = z.object({
