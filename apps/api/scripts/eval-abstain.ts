@@ -1,9 +1,19 @@
 // abstain-gold.jsonl の各質問を retrieveTopK にかけ、機械的FN率を測定する。
-// FN（False Negative）= abstain すべき質問を通常生成させてしまった率（機械的閾値判定ベース）。
-// ③eval CIゲートのベースライン。(b)方針: 現状値を下回らない回帰検知に使う。
 //
-// 注意: 機械的FN率はLLM grounding（参考情報にないと正直に答える）を含まない。
-//   真のFN改善はgrounding実装（④）で担保。本スクリプトはscore帯の回帰検知のみ。
+// 【FN_mechanical の定義】
+//   abstain-gold = 「RAGが答えられるはずがない質問」（令和6年改定後の新規加算等）のゴールドセット。
+//   FN（False Negative）= このゴールドセットのうち、機械的閾値だけでは abstain できなかった割合。
+//
+//   具体的には: topScore ≥ ABSTAIN_THRESHOLD(=0.58) の質問は「生成帯」へ流れ、
+//   機械的に abstain されない = False Negative（abstainし損ねた）。
+//
+//   FN_mechanical=93.3% は「93.3%の質問が機械的閾値をすり抜けてLLMへ渡る」ことを意味し、
+//   意図的に高い値になる設計:
+//     - 機械的閾値が捕捉するのは ABSTAIN帯(0.5-0.58)のみ（corpus類似語で高スコアが出るため）
+//     - 0.58以上の質問には LLM grounding（④で実装）で答えない判断を担保する
+//     - 本スクリプトはそのベースライン計測のみ。閾値引き下げは④grounding後に行う。
+//
+// ③eval CIゲートのベースライン。(b)方針: 現状値を下回らない回帰検知に使う。
 //
 // 前提: kubectl port-forward -n kaigo postgres-0 5436:5432 が稼働中
 // 実行: DATABASE_URL=postgresql://app:app@localhost:5436/functest_hono npx tsx scripts/eval-abstain.ts
@@ -89,7 +99,9 @@ async function main() {
   console.log(`ABSTAIN帯(${DOMAIN_THRESHOLD}〜${ABSTAIN_THRESHOLD}): ${inAbstainBand}`);
   console.log(`generate(≥${ABSTAIN_THRESHOLD}): ${inGenerate}`);
   console.log(`FN_mechanical: ${fnMechanicalCount}/${gold.length} = ${fnMechanicalPct.toFixed(1)}%`);
-  console.log(`（${inAbstainBand}件のみ機械的abstain発火。残${inGenerate}件はLLM grounding依存）`);
+  console.log(`  ↑ abstain すべき${gold.length}件のうち、機械的閾値(${ABSTAIN_THRESHOLD})をすり抜けた件数`);
+  console.log(`  ${inAbstainBand}件のみ機械的abstain発火。残${inGenerate}件はLLM grounding(④)で担保する設計`);
+  console.log(`  ※高いFN率は意図的な設計（0.5-0.58帯だけ機械判定・0.58以上はgrounding委任）`);
 
   const summary: EvalSummary = {
     timestamp: new Date().toISOString(),
