@@ -102,6 +102,16 @@ export const ragChunks = pgTable("rag_chunks", {
   srcId: text("src_id").primaryKey(),
   text: text("text").notNull(),
   vector: vector("vector", { dimensions: 1024 }).notNull(),
+  // citation + date鮮度用メタ。ingest 元(mhlw-qa-chunks.jsonl)にフル装備だが、
+  // gold-A 135件(corpus.json)はメタなし → 全列 nullable で混在対応。
+  //   - heading: 項目見出し（citation の主軸）
+  //   - date: 事務連絡タイトル（発出時期含む長文）。文字列のまま、②で和暦日付を抽出
+  //   - source: 出典文書名（mhlw は "介護サービス関係Q&A集" 固定）
+  //   - page: PDF ページ番号
+  heading: text("heading"),
+  date: text("date"),
+  source: text("source"),
+  page: integer("page"),
 });
 
 export const schema = { users, todos, routingDecisions, ragChunks };

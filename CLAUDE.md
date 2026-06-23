@@ -77,6 +77,10 @@ npm run cf:deploy -w @hybrid/api               # Workers デプロイ
 - web の typecheck が api 源の `@/` を解決できない → web の tsconfig の `@/*` に `../api/src/*` フォールバックを追加済み。触るとき注意。
 - WebCrypto の `BufferSource` 型が lib 差で衝突（api=ES2022 / web=DOM）→ DOM 型名を使わず ArrayBuffer 裏付けの Uint8Array にコピーして両対応している。
 
+## ローカル運用環境
+
+このプロジェクトはローカルでは **k3d**（k3s in Docker）で運用する。ArgoCD + GitOps（main ブランチ自動 sync）で k3d クラスタへデプロイされる。
+
 ## デプロイ
 
 - api → Cloudflare Workers: `apps/api` で `wrangler secret put DATABASE_URL`(Neon) / `JWT_SECRET` → `npm run cf:deploy`。

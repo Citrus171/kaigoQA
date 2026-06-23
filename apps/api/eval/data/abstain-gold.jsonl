@@ -1,0 +1,17 @@
+{"id": "abstain-001", "question": "令和6年度介護報酬改定における訪問介護の基本報酬単位数を教えてください", "expected": "abstain", "note": "令和6年(2024)改定の単位数。corpusは令和3年改定(2021)まで"}
+{"id": "abstain-002", "question": "令和6年改定で新設された訪問系複合型サービスの加算要件を知りたい", "expected": "abstain", "note": "令和6年改定の新設加算。corpusに該当チャンクなし"}
+{"id": "abstain-003", "question": "令和6年度の地域包括支援センターの人員配置基準の変更点はありますか", "expected": "abstain", "note": "令和6年改定の人員配置変更。corpusは令和3年改定まで"}
+{"id": "abstain-004", "question": "令和6年改定における認知症基本照射Focused Careの単位数はいくらですか", "expected": "abstain", "note": "令和6年改定の新設・改定単位数。corpus範囲外"}
+{"id": "abstain-005", "question": "2024年改定後の訪問看護の緊急時訪問看護加算の算定要件を教えてください", "expected": "abstain", "note": "令和6年改定後の加算要件。corpusは令和3年改定まで"}
+{"id": "abstain-006", "question": "令和6年度のショートステイの多床室の室料単価はいくらですか", "expected": "abstain", "note": "令和6年改定の室料単価。corpus範囲外"}
+{"id": "abstain-007", "question": "令和6年改定で廃止された介護報酬の加算はありますか", "expected": "abstain", "note": "令和6年改定の廃止加算。corpusに該当情報なし"}
+{"id": "abstain-008", "question": "令和6年度の介護職員処遇改善加算の給付金の上限額はいくらですか", "expected": "abstain", "note": "令和6年度の処遇改善加算上限額。corpus範囲外"}
+{"id": "abstain-009", "question": "令和6年改定におけるAccredited外来介護の単位数はいくらですか", "expected": "abstain", "note": "令和6年改定の単位数。corpusに該当チャンクなし"}
+{"id": "abstain-010", "question": "令和6年改定後のサービス付高齢者向け住宅の介護報酬の扱いはどうなりますか", "expected": "abstain", "note": "令和6年改定後の取り扱い。corpus範囲外"}
+{"id": "abstain-011", "question": "令和6年度の認知症対応型共同生活介護の夜間体制加算の単位数はいくらですか", "expected": "abstain", "note": "令和6年改定の夜間体制加算単位数。corpus範囲外"}
+{"id": "abstain-012", "question": "令和6年改定における訪問リハビリテーションの1単位の時間は何分ですか", "expected": "abstain", "note": "令和6年改定の1単位時間。corpusは令和3年改定まで"}
+{"id": "abstain-013", "question": "令和6年度の定期巡回随時対応型訪問介護看護複合型の報酬額を教えてください", "expected": "abstain", "note": "令和6年改定の複合型報酬額。corpus範囲外"}
+{"id": "abstain-014", "question": "令和6年改定で導入された在宅医療・介護連携推進加算の算定条件は何ですか", "expected": "abstain", "note": "令和6年改定の新設加算。corpusに該当チャンクなし"}
+{"id": "abstain-015", "question": "令和6年度の小規模多機能型居宅介護の夜間訪問介護の単位数はいくらですか", "expected": "abstain", "note": "令和6年改定の夜間訪問介護単位数。corpus範囲外"}
+{"id": "abstain-016", "question": "令和6年改定における特定事業所集中減算の基準値は何パーセントですか", "expected": "abstain", "note": "令和6年改定の減算基準値。corpus範囲外"}
+{"id": "abstain-017", "question": "令和6年度の介護予防支援の委託費の単価はいくらですか", "expected": "abstain", "note": "令和6年度の委託費単価。corpus範囲外"}

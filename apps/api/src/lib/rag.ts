@@ -26,6 +26,12 @@ export type RetrievedChunk = {
   srcId: string;
   text: string;
   score: number;
+  // citation + date鮮度メタ。mhlw PDF 由来のみ付与（gold-A 系は null/undefined）。
+  // retrieveTopK は DB から取得、RRF 融合時は dense 由来の srcId にのみ引き継がれる。
+  heading?: string | null;
+  date?: string | null;
+  source?: string | null;
+  page?: number | null;
 };
 
 /** retrieval 既定 k（real-query eval で @5=96.2% / @3=80.8% から 5 に変更）。 */
@@ -53,7 +59,7 @@ export async function retrieveTopK(
   // クエリベクトルは pgvector のテキストリテラル '[v1,v2,...]' で渡す（${} はパラメータ化される）。
   const qLiteral = `[${qVec.join(",")}]`;
   const result = await db.execute(sql`
-    SELECT src_id AS "srcId", text,
+    SELECT src_id AS "srcId", text, heading, date, source, page,
            1 - (vector <=> ${qLiteral}::vector) AS score
     FROM rag_chunks
     ORDER BY vector <=> ${qLiteral}::vector

@@ -23,10 +23,12 @@ export const setDoneSchema = z.object({
 export const aiTierSchema = z.enum(["edge", "cloud"]);
 
 // 出力ガードレール(Layer2)の結果。免責付与の有無・断定検知でのエスカレ有無・検知理由。
+// abstained: 弱い検索(top-1 score < ABSTAIN_THRESHOLD)で生成せず断った。捏造抑止の本丸。
 export const aiSafetySchema = z.object({
   disclaimer: z.boolean(),
   escalatedByGuardrail: z.boolean(),
   reasons: z.array(z.string()),
+  abstained: z.boolean(),
 });
 
 // 統合 AI 入口（/ai/qa）の質問リクエスト。ドメイン判定 → ルーティングで答える。
@@ -45,10 +47,17 @@ export const aiQaSchema = z.object({
 export const aiRouteSchema = z.enum(["knowledge_qa", "escalate", "general"]);
 
 // RAG で参照したコーパスチャンク（出典）。score はコサイン類似（正規化済み内積）。
+// citation: heading（項目見出し）+ date（事務連絡タイトル・発出時期含む）+ source（文書名）。
+//   これらは mhlw PDF 由来チャンクのみ付与（gold-A 系は未付与→optional）。
+//   表示フォーマット（令和/西暦変換等）は API 側では行わず、フロントが構造から組む
+//   （LLM に日付変換を任せると捏造リスク）。
 export const aiSourceSchema = z.object({
   srcId: z.string(),
   score: z.number(),
   excerpt: z.string(),
+  heading: z.string().optional(),
+  date: z.string().optional(),
+  source: z.string().optional(),
 });
 
 export const aiQaAnswerSchema = z.object({
