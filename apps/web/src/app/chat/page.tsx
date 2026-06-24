@@ -151,7 +151,7 @@ export default function ChatPage() {
   return (
     <main className="mx-auto mt-16 max-w-2xl px-4">
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">プロンプト Q&amp;A</h1>
+        <h1 className="text-2xl font-bold">介護サービス AI Q&amp;A</h1>
         <Button
           variant="outline"
           size="sm"
