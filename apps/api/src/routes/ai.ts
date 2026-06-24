@@ -7,7 +7,6 @@ import { classifyComplexity } from "@/lib/classify";
 import { classifyRoute, buildSystemPrompt } from "@/lib/capability-router";
 import { retrieveTopK, RETRIEVAL_K, applyFreshness, type RetrievedChunk } from "@/lib/rag";
 import { detectRiskyAssertion, withDisclaimer } from "@/lib/guardrail";
-import { checkGrounding } from "@/lib/grounding";
 import { CfBgeM3EmbedProvider } from "@/lib/cf-embed";
 import {
   InferenceError,
@@ -226,28 +225,6 @@ export async function domainAnswer(
   const slm = await edge.infer(question, system);
   const guard = detectRiskyAssertion(slm.text);
   if (slm.confidence >= EDGE_CONFIDENCE_THRESHOLD && !guard.risky) {
-    // ④ LLM grounding: 生成済み回答が RAG コンテキストに支持されているか edge で確認。
-    // yes/no 判定なので edge で十分（cloud 呼び出しを避けレイテンシを削減）。
-    const grounded = await checkGrounding(question, slm.text, hits.map((h) => h.text), edge);
-    if (!grounded) {
-      return {
-        answer: withDisclaimer(ABSTAIN_MESSAGE),
-        tier: "edge",
-        route: "knowledge_qa",
-        routeReason: "grounding 失敗（RAGコンテキスト非支持）→ abstain",
-        confidence: 0,
-        model: "abstain/grounding",
-        sources: [],
-        safety: {
-          disclaimer: true,
-          escalatedByGuardrail: false,
-          reasons: ["grounding:not_grounded"],
-          abstained: true,
-          grounded: false,
-        },
-        cascade: { served: "edge", edgeConfidence: slm.confidence, escalated: false, guardrailEscalated: false },
-      };
-    }
     return {
       ...finalize({
         ...base,
@@ -255,39 +232,13 @@ export async function domainAnswer(
         tier: "edge",
         confidence: slm.confidence,
         model: edge.name,
-        grounded: true,
+        grounded: null,
       }),
       cascade: { served: "edge", edgeConfidence: slm.confidence, escalated: false, guardrailEscalated: false },
     };
   }
   // 退化 or 危険な断定 → cloud へ fallback。
   const r = await cloud.infer(question, system);
-  // ④ LLM grounding: cloud fallback 後も grounding 確認（判定は edge）。
-  const grounded = await checkGrounding(question, r.text, hits.map((h) => h.text), edge);
-  if (!grounded) {
-    return {
-      answer: withDisclaimer(ABSTAIN_MESSAGE),
-      tier: "cloud",
-      route: "knowledge_qa",
-      routeReason: "grounding 失敗（RAGコンテキスト非支持）→ abstain",
-      confidence: 0,
-      model: "abstain/grounding",
-      sources: [],
-      safety: {
-        disclaimer: true,
-        escalatedByGuardrail: false,
-        reasons: ["grounding:not_grounded"],
-        abstained: true,
-        grounded: false,
-      },
-      cascade: {
-        served: "cloud",
-        edgeConfidence: slm.confidence,
-        escalated: slm.confidence < EDGE_CONFIDENCE_THRESHOLD,
-        guardrailEscalated: guard.risky,
-      },
-    };
-  }
   return {
     ...finalize({
       ...base,
@@ -297,7 +248,7 @@ export async function domainAnswer(
       model: cloud.name,
       escalatedByGuardrail: guard.risky,
       reasons: guard.reasons,
-      grounded: true,
+      grounded: null,
     }),
     cascade: {
       served: "cloud",
