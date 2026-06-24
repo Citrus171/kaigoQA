@@ -221,6 +221,26 @@ export default function ChatPage() {
         </Button>
       </form>
 
+      <div className="mt-4 space-y-2">
+        <p className="text-xs text-neutral-500">質問例</p>
+        {[
+          "本体施設である介護老人福祉施設と併設のショートステイについて、一体的に加算を算定できるのか。",
+          "養護老人ホームの入所者が小規模多機能型居宅介護を利用することはできるか。",
+          "施設サービスや短期入所サービスの入所（入院）日や退所（退院）日に通所サービスを算定できるか。",
+        ].map((q) => (
+          <button
+            key={q}
+            type="button"
+            disabled={submitting}
+            onClick={() => setQuestion(q)}
+            className="flex w-full items-center justify-between gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+          >
+            <span>{q}</span>
+            <span className="shrink-0 text-neutral-400">⇒</span>
+          </button>
+        ))}
+      </div>
+
       {latest && (
         <section className="mt-8 space-y-3">
           <h2 className="text-lg font-semibold">回答</h2>
