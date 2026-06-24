@@ -226,9 +226,9 @@ export async function domainAnswer(
   const slm = await edge.infer(question, system);
   const guard = detectRiskyAssertion(slm.text);
   if (slm.confidence >= EDGE_CONFIDENCE_THRESHOLD && !guard.risky) {
-    // ④ LLM grounding: 生成済み回答が RAG コンテキストに支持されているか cloud で確認。
-    // 支持されていなければ ABSTAIN_MESSAGE に差し替え（grounded:false/abstained:true）。
-    const grounded = await checkGrounding(question, slm.text, hits.map((h) => h.text), cloud);
+    // ④ LLM grounding: 生成済み回答が RAG コンテキストに支持されているか edge で確認。
+    // yes/no 判定なので edge で十分（cloud 呼び出しを避けレイテンシを削減）。
+    const grounded = await checkGrounding(question, slm.text, hits.map((h) => h.text), edge);
     if (!grounded) {
       return {
         answer: withDisclaimer(ABSTAIN_MESSAGE),
@@ -262,8 +262,8 @@ export async function domainAnswer(
   }
   // 退化 or 危険な断定 → cloud へ fallback。
   const r = await cloud.infer(question, system);
-  // ④ LLM grounding: cloud fallback 後も grounding 確認。
-  const grounded = await checkGrounding(question, r.text, hits.map((h) => h.text), cloud);
+  // ④ LLM grounding: cloud fallback 後も grounding 確認（判定は edge）。
+  const grounded = await checkGrounding(question, r.text, hits.map((h) => h.text), edge);
   if (!grounded) {
     return {
       answer: withDisclaimer(ABSTAIN_MESSAGE),
