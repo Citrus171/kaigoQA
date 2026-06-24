@@ -1,4 +1,4 @@
-# web を kaigo.miyaoo.com で HTTPS 公開。cert-manager HTTP-01 で Let's Encrypt 証明書を自動取得。
+# web を kaigoai.miyaoo.com で HTTPS 公開。cert-manager HTTP-01 で Let's Encrypt 証明書を自動取得。
 # API(8787) は内部通信のまま（web → BFF → API_ORIGIN=http://api:8787）。
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -10,10 +10,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - kaigo.miyaoo.com
-      secretName: kaigo-tls
+        - kaigoai.miyaoo.com
+      secretName: kaigoai-tls
   rules:
-    - host: kaigo.miyaoo.com
+    - host: kaigoai.miyaoo.com
       http:
         paths:
           - path: /
