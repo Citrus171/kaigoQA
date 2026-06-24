@@ -1,7 +1,20 @@
-# ArgoCD UI を Traefik 経由で argocd.local に公開する。
-# argocd-server は TLS 有効(secure)のまま。client→Traefik は HTTP(web entrypoint),
-# Traefik→argocd-server は HTTPS。self-signed cert のため backend のみ検証skip。
-# アクセス: http://argocd.local:8081  (k3d serverlb: host8081 -> traefik web/80)
+# ArgoCD UI を argocd.miyaoo.com で HTTPS 公開。
+# argocd-server は TLS 有効(secure)のまま。cert-manager で argocd-tls を発行し
+# Traefik websecure で終端。Traefik→argocd-server は HTTPS(self-signed 検証skip)。
+---
+# cert-manager で Let's Encrypt 証明書を発行（IngressRoute は自動発行非対応のため明示）
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-tls
+  namespace: argocd
+spec:
+  secretName: argocd-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - argocd.miyaoo.com
 ---
 apiVersion: traefik.io/v1alpha1
 kind: ServersTransport
@@ -19,12 +32,14 @@ metadata:
   namespace: argocd
 spec:
   entryPoints:
-    - web
+    - websecure
   routes:
     - kind: Rule
-      match: Host(`argocd.local`)
+      match: Host(`argocd.miyaoo.com`)
       services:
         - name: argocd-server
           port: 443
           scheme: https
           serversTransport: argocd-backend
+  tls:
+    secretName: argocd-tls

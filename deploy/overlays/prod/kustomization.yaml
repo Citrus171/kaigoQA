@@ -1,0 +1,78 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kaigo
+resources:
+  - ../../base
+  - ingress.yaml
+images:
+  - name: hybrid-api:dev
+    newName: ghcr.io/citrus171/kaigo-api
+    newTag: sha-af9cd73
+  - name: hybrid-web:dev
+    newName: ghcr.io/citrus171/kaigo-web
+    newTag: sha-af9cd73
+patches:
+  - target:
+      kind: Deployment
+      name: api
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 384Mi
+  - target:
+      kind: Deployment
+      name: web
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 384Mi
+  - target:
+      kind: StatefulSet
+      name: postgres
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0
+        value:
+          name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: hybrid-secret
+              key: POSTGRES_USER
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1
+        value:
+          name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: hybrid-secret
+              key: POSTGRES_PASSWORD

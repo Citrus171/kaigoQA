@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/Citrus171/kaigoQA
     targetRevision: main
-    path: deploy/overlays/dev
+    path: deploy/overlays/prod
   destination:
     server: https://kubernetes.default.svc
     namespace: kaigo
