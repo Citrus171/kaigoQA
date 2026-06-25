@@ -10,7 +10,7 @@ images:
     newTag: sha-d3df465
   - name: hybrid-web:dev
     newName: ghcr.io/citrus171/kaigo-web
-    newTag: sha-d3df465
+    newTag: sha-22aedb5
 patches:
   - target:
       kind: Deployment
