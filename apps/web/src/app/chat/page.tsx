@@ -248,13 +248,13 @@ export default function ChatPage() {
         </section>
       )}
 
-      {history.length > 0 && (
+      {history.length > 1 && (
         <section className="mt-10 space-y-3">
           <h2 className="text-lg font-semibold">
-            過去の履歴（最新{history.length}件）
+            過去の履歴（{history.length - 1}件）
           </h2>
           <ul className="space-y-4">
-            {history.map((item) => (
+            {history.slice(1).map((item) => (
               <li key={item.id} className="rounded-md border border-neutral-200 p-4">
                 <AnswerView
                   item={item}
