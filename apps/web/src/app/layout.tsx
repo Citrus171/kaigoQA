@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "functest-freelance",
-  description: "案件獲得最適化スタックの動作確認 Todo アプリ",
+  title: "介護サービスAI",
+  description: "介護サービスに関するご質問にAIがお答えします",
 };
 
 export default function RootLayout({
